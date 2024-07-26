@@ -6,6 +6,7 @@ import { HealthController } from './health/health.controller';
 import { FileUploadController } from './file-upload/FileUploadController';
 import { FileUploadService } from './file-upload/FileUploadService';
 import { MulterModule } from '@nestjs/platform-express';
+import * as multer from 'multer';
 
 @Module({
   imports: [ScrapingModule, MulterModule.register({

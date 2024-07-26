@@ -1,19 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import { join } from 'path';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as xlsx from 'xlsx';
+import { join } from 'path';
 
 @Injectable()
 export class FileUploadService {
   async handleFileUpload(file: Express.Multer.File) {
+    // Construir la ruta completa del archivo
     const filePath = join(__dirname, '..', 'uploads', file.filename);
+    
+    // Verificar que el archivo existe
+    if (!fs.existsSync(filePath)) {
+      throw new BadRequestException('Archivo no encontrado');
+    }
 
-    // Guardar el archivo en el sistema de archivos
-    fs.writeFileSync(filePath, file.buffer);
-
-    // Leer el archivo Excel - Obtiene el nombre de la primera hoja y la referencia a la hoja.
-    const workbook = xlsx.readFile(filePath);
-    const sheetName = workbook.SheetNames[0]; //TODO: quizas aca deberia ser la 2da hoja
+    // Leer el archivo desde el sistema de archivos
+    const fileBuffer = fs.readFileSync(filePath);
+    
+    // Leer el archivo Excel
+    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
 
     // Convertir la hoja de cálculo a JSON
@@ -23,14 +29,9 @@ export class FileUploadService {
     if (!Array.isArray(jsonData) || !Array.isArray(jsonData[0])) {
       throw new Error('El formato del archivo no es válido');
     }
-    console.log(jsonData);
-    
-
-    // Typecast jsonData to any[][]
-    const dataArray: any[][] = jsonData as any[][];
 
     // Extraer datos específicos
-    const extractedData = this.extractData(dataArray);
+    const extractedData = this.extractData(jsonData as any[][]);
 
     return {
       message: 'Archivo subido exitosamente',
@@ -40,14 +41,10 @@ export class FileUploadService {
   }
 
   extractData(data: any[][]): any[] {
-    const extractedData = data.slice(1).map(row => ({
+    return data.slice(1).map(row => ({
       unidad: row[0],
       telefono: row[1],
       tipo_plan: row[4],
     }));
-
-    console.log(extractedData);
-
-    return extractedData;
   }
 }
