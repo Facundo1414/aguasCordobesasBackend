@@ -12,20 +12,30 @@ export class FilterFileService {
   ) {}
 
   async processFile(filePath: string): Promise<void> {
-    const filteredFilePath = await this.filterNumService.filterNumbers(filePath);
-    const workbook = xlsx.readFile(filteredFilePath);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData: any[] = xlsx.utils.sheet_to_json(worksheet);
+    try {
+      // Filtrar números y obtener los archivos generados
+      const { filteredFile, notWhatsAppFile } = await this.filterNumService.filterNumbers(filePath);
 
-    const planFilteredData = await this.filterPlanService.filterPlans(jsonData);
+      // Leer el archivo filtrado
+      const workbook = xlsx.readFile(filteredFile);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData: any[] = xlsx.utils.sheet_to_json(worksheet);
 
-    // Generar el archivo final basado en los datos filtrados
-    const finalWorkbook = xlsx.utils.book_new();
-    const finalWorksheet = xlsx.utils.json_to_sheet(planFilteredData);
-    xlsx.utils.book_append_sheet(finalWorkbook, finalWorksheet, 'FinalData');
+      // Filtrar planes
+      const planFilteredData = await this.filterPlanService.filterPlans(jsonData);
 
-    const finalOutputFilePath = `final-${Date.now()}.xlsx`;
-    xlsx.writeFile(finalWorkbook, finalOutputFilePath);
+      // Generar el archivo final basado en los datos filtrados
+      const finalWorkbook = xlsx.utils.book_new();
+      const finalWorksheet = xlsx.utils.json_to_sheet(planFilteredData);
+      xlsx.utils.book_append_sheet(finalWorkbook, finalWorksheet, 'FinalData');
+
+      const finalOutputFilePath = `final-${Date.now()}.xlsx`;
+      xlsx.writeFile(finalWorkbook, finalOutputFilePath);
+      
+      console.log(`Final file created at ${finalOutputFilePath}`);
+    } catch (error) {
+      console.error('Error processing file:', error);
+    }
   }
 }

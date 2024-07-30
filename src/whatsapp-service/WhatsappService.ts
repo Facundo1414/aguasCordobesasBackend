@@ -44,6 +44,9 @@ export class WhatsAppService implements OnModuleInit {
 
   async isWhatsAppUser(phoneNumber: string): Promise<boolean> {
     try {
+      if (phoneNumber === "" || phoneNumber === null || !phoneNumber.startsWith("5409351")) {
+        return false;
+      }
       const chatId = `${phoneNumber}@c.us`;
       const isRegistered = await this.client.isRegisteredUser(chatId);
       return isRegistered;

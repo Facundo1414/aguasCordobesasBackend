@@ -35,9 +35,9 @@ export class FileUploadService {
 
 
 
-    // LLAMAR AL SERVICIO DE FILTRO
-    //const extractedData = this.extractData(jsonData as any[][]);
-    await this.filterFileService.processFile(file.path);
+    // Llamar al servicio de filtro
+    await this.filterFileService.processFile(filePath);
+
 
 
     return {
@@ -45,14 +45,5 @@ export class FileUploadService {
       filePath,
       data: "extractedData",
     };
-  }
-
-  extractData(data: any[][]): any[] {
-    return data.slice(1).map(row => ({
-      unidad: row[0],
-      telefono_unidad: row[1],
-      telefono_cliente: row[2],
-      tipo_plan: row[4],
-    }));
   }
 }
