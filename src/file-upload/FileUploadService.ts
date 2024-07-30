@@ -2,15 +2,17 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as xlsx from 'xlsx';
 import { join } from 'path';
+import { FilterFileService } from 'src/filter-service/FilterFileService';
 
 @Injectable()
 export class FileUploadService {
+
+  constructor(private readonly filterFileService: FilterFileService) {}
+
   async handleFileUpload(file: Express.Multer.File) {
     // Construir la ruta completa del archivo
     const filePath = join(__dirname, '..', 'uploads', file.filename);
-    
-    // Verificar que el archivo existe
-    if (!fs.existsSync(filePath)) {
+        if (!fs.existsSync(filePath)) {
       throw new BadRequestException('Archivo no encontrado');
     }
 
@@ -30,20 +32,26 @@ export class FileUploadService {
       throw new Error('El formato del archivo no es válido');
     }
 
-    // Extraer datos específicos
-    const extractedData = this.extractData(jsonData as any[][]);
+
+
+
+    // LLAMAR AL SERVICIO DE FILTRO
+    //const extractedData = this.extractData(jsonData as any[][]);
+    await this.filterFileService.processFile(file.path);
+
 
     return {
       message: 'Archivo subido exitosamente',
       filePath,
-      data: extractedData,
+      data: "extractedData",
     };
   }
 
   extractData(data: any[][]): any[] {
     return data.slice(1).map(row => ({
       unidad: row[0],
-      telefono: row[1],
+      telefono_unidad: row[1],
+      telefono_cliente: row[2],
       tipo_plan: row[4],
     }));
   }
