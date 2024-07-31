@@ -14,6 +14,7 @@ import { WhatsAppService } from './whatsapp-service/WhatsappService';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FileService } from './file-upload/DB/FileService';
 import { File } from './file-upload/DB/File.entity';
+import { FileStorageService } from './file-upload/DB/FileStorageService';
 
 @Module({
   imports: [
@@ -34,10 +35,9 @@ import { File } from './file-upload/DB/File.entity';
       synchronize: true, // TODO Asegúrate de ponerlo en `false` en producción
     }),
     TypeOrmModule.forFeature([File]),
-
   ], 
   controllers: [AppController, HealthController,FileUploadController],
-  providers: [AppService,FileUploadService,FilterNumService, FilterPlanService, FilterFileService, WhatsAppService, FileService],
-  exports: [FilterNumService],
+  providers: [AppService,FileUploadService,FilterNumService, FilterPlanService, FilterFileService, WhatsAppService, FileService, FileStorageService],
+  exports: [FilterNumService,FileStorageService],
 })
 export class AppModule {}

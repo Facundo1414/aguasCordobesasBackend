@@ -36,7 +36,8 @@ export class FileUploadService {
 
 
     // Llamar al servicio de filtro
-    await this.filterFileService.processFile(filePath);
+    //TODO: Por el momento el id del usuario que se envia es el 1
+    await this.filterFileService.processFile(filePath,1);
 
 
 

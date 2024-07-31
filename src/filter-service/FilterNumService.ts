@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { WhatsAppService } from 'src/whatsapp-service/WhatsappService';
 import * as XLSX from 'xlsx';
-
+import * as path from 'path';
+import * as fs from 'fs';
+import { FileStorageService } from 'src/file-upload/DB/FileStorageService';
 @Injectable()
 export class FilterNumService {
-  constructor(private readonly whatsappService: WhatsAppService) {}
-
+  constructor(
+    private readonly whatsappService: WhatsAppService,
+    private readonly fileStorageService: FileStorageService // Inyecta el nuevo servicio
+  ) {}
+  
   private formatPhoneNumber(phoneNumber: string): string {
     const cleanedNumber = phoneNumber.replace(/\D/g, ''); // Elimina cualquier carácter no numérico
 
@@ -57,6 +62,13 @@ export class FilterNumService {
 
     const notWhatsAppFilePath = `not-whatsapp-${Date.now()}.xlsx`;
     XLSX.writeFile(notWhatsAppWorkbook, notWhatsAppFilePath);
+
+    // Guardar los archivos en la base de datos
+    //TODO: Por el momento el id del usuario que se envia es el 1
+    await this.fileStorageService.saveFile(filteredFilePath, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',1);
+    await this.fileStorageService.saveFile(notWhatsAppFilePath, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',1);
+
+
 
     return { filteredFile: filteredFilePath, notWhatsAppFile: notWhatsAppFilePath };
   }

@@ -2,38 +2,30 @@ import { Injectable } from '@nestjs/common';
 import { FilterNumService } from './FilterNumService';
 import { FilterPlanService } from './FilterPlanService';
 import * as xlsx from 'xlsx';
-import * as fs from 'fs';
 import * as path from 'path';
-import { FileService } from 'src/file-upload/DB/FileService';
 import { readExcelFile, writeExcelFile } from '../../utils/ExcelTools';
+import { FileStorageService } from 'src/file-upload/DB/FileStorageService';
 
 @Injectable()
 export class FilterFileService {
   constructor(
     private readonly filterNumService: FilterNumService,
     private readonly filterPlanService: FilterPlanService,
-    private readonly fileService: FileService
+    private readonly fileStorageService: FileStorageService
   ) {}
 
-  async processFile(filePath: string): Promise<void> {
+  async processFile(filePath: string, userId: number): Promise<void> {
     try {
       // Filtrar números y obtener los archivos generados
       const { filteredFile, notWhatsAppFile } = await this.filterNumService.filterNumbers(filePath);
 
-      // Leer el archivo de números que no tienen WhatsApp y generarlo
-      const notWhatsAppData = readExcelFile(notWhatsAppFile);
-      const notWhatsAppFilePath = `not-whatsapp-${Date.now()}.xlsx`;
-      if (notWhatsAppData.length > 1) {
-        writeExcelFile(notWhatsAppData, notWhatsAppFilePath , 'Not WhatsApp');
-      }
       // Guardar archivo de números no WhatsApp
-      const notWhatsAppFileEntry = await this.fileService.saveFile(
-        notWhatsAppFilePath,
-        path.join(__dirname, notWhatsAppFilePath),
-        1 // Aquí se usa un ID de usuario estático, puedes ajustarlo según sea necesario
+      await this.fileStorageService.saveFile(
+        notWhatsAppFile,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        userId
       );
-      console.log(`Not WhatsApp file created at ${notWhatsAppFilePath}`);
-
+      console.log(`Not WhatsApp file created at ${notWhatsAppFile}`);
 
       // Leer el archivo filtrado
       const jsonData: any[] = readExcelFile(filteredFile);
@@ -45,10 +37,10 @@ export class FilterFileService {
       if (pa01Plans.length > 0) {
         const pa01FilePath = `pa01-plans-${Date.now()}.xlsx`;
         writeExcelFile(pa01Plans, pa01FilePath, 'PA01 Plans');
-        const pa01FileEntry = await this.fileService.saveFile(
+        await this.fileStorageService.saveFile(
           pa01FilePath,
-          path.join(__dirname, pa01FilePath),
-          1
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          userId
         );
         console.log(`PA01 Plans file created at ${pa01FilePath}`);
       }
@@ -56,10 +48,10 @@ export class FilterFileService {
       if (otherPlans.length > 0) {
         const otherPlansFilePath = `other-plans-${Date.now()}.xlsx`;
         writeExcelFile(otherPlans, otherPlansFilePath, 'Other Plans');
-        const otherPlansFileEntry = await this.fileService.saveFile(
+        await this.fileStorageService.saveFile(
           otherPlansFilePath,
-          path.join(__dirname, otherPlansFilePath),
-          1
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          userId
         );
         console.log(`Other Plans file created at ${otherPlansFilePath}`);
       }
@@ -67,10 +59,10 @@ export class FilterFileService {
       if (removedPlans.length > 0) {
         const removedPlansFilePath = `removed-plans-${Date.now()}.xlsx`;
         writeExcelFile(removedPlans, removedPlansFilePath, 'Removed Plans');
-        const removedPlansFileEntry = await this.fileService.saveFile(
+        await this.fileStorageService.saveFile(
           removedPlansFilePath,
-          path.join(__dirname, removedPlansFilePath),
-          1
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          userId
         );
         console.log(`Removed Plans file created at ${removedPlansFilePath}`);
       }
@@ -78,6 +70,4 @@ export class FilterFileService {
       console.error('Error processing file:', error);
     }
   }
-
-
 }
