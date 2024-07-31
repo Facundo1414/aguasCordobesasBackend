@@ -2,12 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { FilterNumService } from './FilterNumService';
 import { FilterPlanService } from './FilterPlanService';
 import * as xlsx from 'xlsx';
+import * as fs from 'fs';
+import * as path from 'path';
+import { FileService } from 'src/file-upload/DB/FileService';
+import { readExcelFile, writeExcelFile } from '../../utils/ExcelTools';
 
 @Injectable()
 export class FilterFileService {
   constructor(
     private readonly filterNumService: FilterNumService,
-    private readonly filterPlanService: FilterPlanService
+    private readonly filterPlanService: FilterPlanService,
+    private readonly fileService: FileService
   ) {}
 
   async processFile(filePath: string): Promise<void> {
@@ -16,53 +21,63 @@ export class FilterFileService {
       const { filteredFile, notWhatsAppFile } = await this.filterNumService.filterNumbers(filePath);
 
       // Leer el archivo de números que no tienen WhatsApp y generarlo
-      const notWhatsAppData = this.readExcelFile(notWhatsAppFile);
+      const notWhatsAppData = readExcelFile(notWhatsAppFile);
+      const notWhatsAppFilePath = `not-whatsapp-${Date.now()}.xlsx`;
       if (notWhatsAppData.length > 1) {
-        this.writeExcelFile(notWhatsAppData, `not-whatsapp-${Date.now()}.xlsx`, 'Not WhatsApp');
+        writeExcelFile(notWhatsAppData, notWhatsAppFilePath , 'Not WhatsApp');
       }
+      // Guardar archivo de números no WhatsApp
+      const notWhatsAppFileEntry = await this.fileService.saveFile(
+        notWhatsAppFilePath,
+        path.join(__dirname, notWhatsAppFilePath),
+        1 // Aquí se usa un ID de usuario estático, puedes ajustarlo según sea necesario
+      );
+      console.log(`Not WhatsApp file created at ${notWhatsAppFilePath}`);
+
 
       // Leer el archivo filtrado
-      const jsonData: any[] = this.readExcelFile(filteredFile);
+      const jsonData: any[] = readExcelFile(filteredFile);
 
       // Filtrar planes y obtener las filas removidas
       const { pa01Plans, otherPlans, removedPlans } = await this.filterPlanService.filterPlans(jsonData);
 
-      // Generar los archivos Excel si los datos no están vacíos
+      // Guardar archivos de planes
       if (pa01Plans.length > 0) {
-        this.writeExcelFile(pa01Plans, `pa01-plans-${Date.now()}.xlsx`, 'PA01 Plans');
+        const pa01FilePath = `pa01-plans-${Date.now()}.xlsx`;
+        writeExcelFile(pa01Plans, pa01FilePath, 'PA01 Plans');
+        const pa01FileEntry = await this.fileService.saveFile(
+          pa01FilePath,
+          path.join(__dirname, pa01FilePath),
+          1
+        );
+        console.log(`PA01 Plans file created at ${pa01FilePath}`);
       }
 
       if (otherPlans.length > 0) {
-        this.writeExcelFile(otherPlans, `other-plans-${Date.now()}.xlsx`, 'Other Plans');
+        const otherPlansFilePath = `other-plans-${Date.now()}.xlsx`;
+        writeExcelFile(otherPlans, otherPlansFilePath, 'Other Plans');
+        const otherPlansFileEntry = await this.fileService.saveFile(
+          otherPlansFilePath,
+          path.join(__dirname, otherPlansFilePath),
+          1
+        );
+        console.log(`Other Plans file created at ${otherPlansFilePath}`);
       }
 
       if (removedPlans.length > 0) {
-        this.writeExcelFile(removedPlans, `removed-plans-${Date.now()}.xlsx`, 'Removed Plans');
+        const removedPlansFilePath = `removed-plans-${Date.now()}.xlsx`;
+        writeExcelFile(removedPlans, removedPlansFilePath, 'Removed Plans');
+        const removedPlansFileEntry = await this.fileService.saveFile(
+          removedPlansFilePath,
+          path.join(__dirname, removedPlansFilePath),
+          1
+        );
+        console.log(`Removed Plans file created at ${removedPlansFilePath}`);
       }
     } catch (error) {
       console.error('Error processing file:', error);
     }
   }
 
-  // Método auxiliar para leer archivos Excel
-  private readExcelFile(filePath: string): any[] {
-    const workbook = xlsx.readFile(filePath);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    return xlsx.utils.sheet_to_json(worksheet, { header: 1 });
-  }
 
-  // Método auxiliar para escribir archivos Excel
-  private writeExcelFile(data: any[], outputFilePath: string, sheetName: string): void {
-    if (data.length === 0) {
-      console.log(`No data to write for ${sheetName}`);
-      return;
-    }
-
-    const workbook = xlsx.utils.book_new();
-    const worksheet = xlsx.utils.json_to_sheet(data, { skipHeader: true });
-    xlsx.utils.book_append_sheet(workbook, worksheet, sheetName);
-    xlsx.writeFile(workbook, outputFilePath);
-    console.log(`${sheetName} file created at ${outputFilePath}`);
-  }
 }
