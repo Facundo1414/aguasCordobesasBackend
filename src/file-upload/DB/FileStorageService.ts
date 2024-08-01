@@ -6,6 +6,7 @@ import * as path from 'path';
 @Injectable()
 export class FileStorageService implements OnModuleDestroy {
   private readonly client: Client;
+  private readonly tempDir = path.join(__dirname, '..', '..', 'temp');
 
   constructor() {
     this.client = new Client({
@@ -17,6 +18,30 @@ export class FileStorageService implements OnModuleDestroy {
     });
 
     this.client.connect();
+
+    // Create temp directory if it doesn't exist
+    if (!fs.existsSync(this.tempDir)) {
+      fs.mkdirSync(this.tempDir);
+    }
+  }
+
+  async saveTempFile(file: Express.Multer.File): Promise<string> {
+    const tempFilePath = path.join(this.tempDir, file.filename);
+    fs.writeFileSync(tempFilePath, file.buffer);
+    return tempFilePath;
+  }
+
+  async deleteTempFile(filePath: string): Promise<void> {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  }
+
+  async cleanTempDir(): Promise<void> {
+    const files = fs.readdirSync(this.tempDir);
+    for (const file of files) {
+      fs.unlinkSync(path.join(this.tempDir, file));
+    }
   }
 
   async saveFile(filePath: string, fileType: string, userId: number): Promise<void> {
@@ -38,6 +63,10 @@ export class FileStorageService implements OnModuleDestroy {
     } catch (error) {
       console.error('Error saving file to database:', error);
     }
+  }
+
+  getTempDir(): string {
+    return this.tempDir;
   }
 
   async onModuleDestroy() {

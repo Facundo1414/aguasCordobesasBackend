@@ -15,6 +15,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { FileService } from './file-upload/DB/FileService';
 import { File } from './file-upload/DB/File.entity';
 import { FileStorageService } from './file-upload/DB/FileStorageService';
+import { CleanupService } from './file-upload/DB/CleanupService';
 
 @Module({
   imports: [
@@ -36,8 +37,32 @@ import { FileStorageService } from './file-upload/DB/FileStorageService';
     }),
     TypeOrmModule.forFeature([File]),
   ], 
-  controllers: [AppController, HealthController,FileUploadController],
-  providers: [AppService,FileUploadService,FilterNumService, FilterPlanService, FilterFileService, WhatsAppService, FileService, FileStorageService],
-  exports: [FilterNumService,FileStorageService],
+
+
+  controllers: [
+    AppController, 
+    HealthController,
+    FileUploadController
+  ],
+
+
+  providers: [
+    AppService,
+    FileUploadService,
+    FilterNumService,
+    FilterPlanService, 
+    FilterFileService, 
+    WhatsAppService, 
+    FileService, 
+    FileStorageService,
+    CleanupService
+  ],
+
+
+  exports: [
+    FilterNumService,
+    FileStorageService
+  ],
+  
 })
 export class AppModule {}

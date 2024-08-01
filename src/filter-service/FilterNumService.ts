@@ -2,15 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { WhatsAppService } from 'src/whatsapp-service/WhatsappService';
 import * as XLSX from 'xlsx';
 import * as path from 'path';
-import * as fs from 'fs';
 import { FileStorageService } from 'src/file-upload/DB/FileStorageService';
+import * as fs from 'fs';
+
 @Injectable()
 export class FilterNumService {
   constructor(
     private readonly whatsappService: WhatsAppService,
     private readonly fileStorageService: FileStorageService // Inyecta el nuevo servicio
   ) {}
-  
+
   private formatPhoneNumber(phoneNumber: string): string {
     const cleanedNumber = phoneNumber.replace(/\D/g, ''); // Elimina cualquier carácter no numérico
 
@@ -36,7 +37,7 @@ export class FilterNumService {
     for (const row of jsonData.slice(1)) { // Omitir los encabezados
       const col1 = row[1] ? this.formatPhoneNumber(row[1].toString()) : "";
       const col2 = row[2] ? this.formatPhoneNumber(row[2].toString()) : "";
-      
+
       const isValidCol1 = col1 && await this.whatsappService.isWhatsAppUser(col1);
       const isValidCol2 = col2 && await this.whatsappService.isWhatsAppUser(col2);
 
@@ -57,18 +58,17 @@ export class FilterNumService {
     const notWhatsAppWorksheet = XLSX.utils.aoa_to_sheet(notWhatsAppData);
     XLSX.utils.book_append_sheet(notWhatsAppWorkbook, notWhatsAppWorksheet, 'NotWhatsAppData');
 
-    const filteredFilePath = `filtered-${Date.now()}.xlsx`;
+    // Asegurarse de que el directorio temporal existe
+    const tempDir = path.join(__dirname, '..', '..', 'temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir);
+    }
+
+    const filteredFilePath = path.join(tempDir, `filtered-${Date.now()}.xlsx`);
     XLSX.writeFile(newWorkbook, filteredFilePath);
 
-    const notWhatsAppFilePath = `not-whatsapp-${Date.now()}.xlsx`;
+    const notWhatsAppFilePath = path.join(tempDir, `not-whatsapp-${Date.now()}.xlsx`);
     XLSX.writeFile(notWhatsAppWorkbook, notWhatsAppFilePath);
-
-    // Guardar los archivos en la base de datos
-    //TODO: Por el momento el id del usuario que se envia es el 1
-    await this.fileStorageService.saveFile(filteredFilePath, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',1);
-    await this.fileStorageService.saveFile(notWhatsAppFilePath, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',1);
-
-
 
     return { filteredFile: filteredFilePath, notWhatsAppFile: notWhatsAppFilePath };
   }
