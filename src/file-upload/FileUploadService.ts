@@ -12,7 +12,8 @@ export class FileUploadService {
   async handleFileUpload(file: Express.Multer.File) {
     // Construir la ruta completa del archivo
     const filePath = join(__dirname, '..', 'uploads', file.filename);
-        if (!fs.existsSync(filePath)) {
+    
+    if (!fs.existsSync(filePath)) {
       throw new BadRequestException('Archivo no encontrado');
     }
 
@@ -32,19 +33,18 @@ export class FileUploadService {
       throw new Error('El formato del archivo no es válido');
     }
 
+    try {
+      // Llamar al servicio de filtro y obtener los nombres de archivos guardados
+      const savedFileNames = await this.filterFileService.processFile(filePath, 1);
 
-
-
-    // Llamar al servicio de filtro
-    //TODO: Por el momento el id del usuario que se envia es el 1
-    await this.filterFileService.processFile(filePath,1);
-
-
-
-    return {
-      message: 'Archivo subido exitosamente',
-      filePath,
-      data: "extractedData",
-    };
+      return {
+        message: 'Archivo subido exitosamente',
+        filePath,
+        savedFileNames,
+      };
+    } catch (error) {
+      console.error('Error processing file:', error);
+      throw error;
+    }
   }
 }

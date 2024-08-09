@@ -42,6 +42,8 @@ export class FileUploadController {
       },
     },
   })
+
+  
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     console.log('File received in controller:', file);
     if (!file) {

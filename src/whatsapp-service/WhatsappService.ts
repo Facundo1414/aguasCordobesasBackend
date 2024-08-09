@@ -1,12 +1,16 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Client, LocalAuth } from 'whatsapp-web.js';
+import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode-terminal';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 @Injectable()
 export class WhatsAppService implements OnModuleInit {
   private client: Client;
 
-  constructor() {
+  constructor(
+    @InjectQueue('whatsapp') private readonly whatsappQueue: Queue
+  ) {
     this.client = new Client({
       authStrategy: new LocalAuth(),
     });
@@ -44,6 +48,8 @@ export class WhatsAppService implements OnModuleInit {
 
   async isWhatsAppUser(phoneNumber: string): Promise<boolean> {
     try {
+      console.log(phoneNumber);
+      
       if (phoneNumber === "" || phoneNumber === null || !phoneNumber.startsWith("5409351")) {
         return false;
       }
@@ -66,5 +72,28 @@ export class WhatsAppService implements OnModuleInit {
     }
   }
 
+
+  // BLOQUE DE METODOS PARA EL STAGE 2
+  async sendPDF(clientId: string, filePath: string): Promise<void> {
+    const phoneNumber = await this.getPhoneNumber(clientId);
+    const chatId = `${phoneNumber}@c.us`;
+
+    try {
+      const media = MessageMedia.fromFilePath(filePath);
+      await this.client.sendMessage(chatId, media);
+      console.log(`PDF sent to ${phoneNumber}`);
+    } catch (error) {
+      console.error('Error sending PDF:', error);
+    }
+  }
+
+  async addToQueue(clientId: string, filePath: string): Promise<void> {
+    await this.whatsappQueue.add({ clientId, filePath });
+  }
+
+  private async getPhoneNumber(clientId: string): Promise<string> {
+    // TODO Implementa la lógica para obtener el número de teléfono del cliente según el clientId
+    return '+1234567890';
+  }
 
 }

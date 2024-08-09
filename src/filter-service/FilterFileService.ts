@@ -13,7 +13,7 @@ export class FilterFileService {
     private readonly fileStorageService: FileStorageService
   ) {}
 
-  async processFile(filePath: string, userId: number): Promise<void> {
+  async processFile(filePath: string, userId: number): Promise<string[]> {
     try {
       // Filtrar números y obtener los archivos generados
       const { filteredFile, notWhatsAppFile } = await this.filterNumService.filterNumbers(filePath);
@@ -35,17 +35,20 @@ export class FilterFileService {
       // Guardar archivos de planes
       let tempPlanFiles: string[] = [];
       const tempDir = this.fileStorageService.getTempDir();
+      let savedFileNames: string[] = [path.basename(notWhatsAppFile)];
 
       if (pa01Plans.length > 0) {
         const pa01FilePath = path.join(tempDir, `pa01-plans-${Date.now()}.xlsx`);
         writeExcelFile(pa01Plans, pa01FilePath, 'PA01 Plans');
         tempPlanFiles.push(pa01FilePath);
+        savedFileNames.push(path.basename(pa01FilePath));
       }
 
       if (otherPlans.length > 0) {
         const otherPlansFilePath = path.join(tempDir, `other-plans-${Date.now()}.xlsx`);
         writeExcelFile(otherPlans, otherPlansFilePath, 'Other Plans');
         tempPlanFiles.push(otherPlansFilePath);
+        savedFileNames.push(path.basename(otherPlansFilePath));
       }
 
       if (removedPlans.length > 0) {
@@ -61,7 +64,7 @@ export class FilterFileService {
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           userId
         );
-        await this.fileStorageService.deleteTempFile(tempFile);
+        // await this.fileStorageService.deleteTempFile(tempFile);
       }
 
       // Eliminar archivo temporal de números filtrados
@@ -69,8 +72,11 @@ export class FilterFileService {
 
       console.log("Filter File Service Finished.");
       
+      // Retornar los nombres de los archivos guardados
+      return savedFileNames;
     } catch (error) {
       console.error('Error processing file:', error);
+      throw error;
     }
   }
 }

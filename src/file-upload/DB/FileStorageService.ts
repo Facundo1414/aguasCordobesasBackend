@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Client } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as xlsx from 'xlsx';
 
 @Injectable()
 export class FileStorageService implements OnModuleDestroy {
@@ -19,7 +20,7 @@ export class FileStorageService implements OnModuleDestroy {
 
     this.client.connect();
 
-    // Create temp directory if it doesn't exist
+    // Crear el directorio temporal si no existe
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir);
     }
@@ -65,11 +66,41 @@ export class FileStorageService implements OnModuleDestroy {
     }
   }
 
+  async getFile(fileName: string): Promise<string> {
+    try {
+      const query = 'SELECT file_name, data FROM file_storage WHERE file_name = $1';
+      const result = await this.client.query(query, [fileName]);
+
+      if (result.rows.length === 0) {
+        throw new Error('File not found');
+      }
+
+      const { file_name, data } = result.rows[0];
+      const tempFilePath = path.join(this.tempDir, file_name);
+
+      fs.writeFileSync(tempFilePath, data);
+      return tempFilePath;
+    } catch (error) {
+      console.error('Error retrieving file from database:', error);
+      throw error;
+    }
+  }
+
   getTempDir(): string {
     return this.tempDir;
   }
 
   async onModuleDestroy() {
     await this.client.end();
+  }
+
+  // Método para el stage 2
+  getClientIdsFromFile(fileId: string): string[] {
+    const filePath = `/uploads/${fileId}.xlsx`; // TODO: actualizar ubicación
+    const workbook = xlsx.readFile(filePath);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = xlsx.utils.sheet_to_json(sheet);
+
+    return data.map(row => row['Client UF']);
   }
 }
