@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { FilterNumService } from './FilterNumService';
-import { FilterPlanService } from './FilterPlanService';
 import * as path from 'path';
 import { readExcelFile, writeExcelFile } from '../../utils/ExcelTools';
 import { FileStorageService } from 'src/file-upload/DB/FileStorageService';
+import { FilterNumService } from './FilterNumService';
+import { FilterPlanService } from './FilterPlanService';
 
 @Injectable()
 export class FilterFileService {
@@ -39,22 +39,34 @@ export class FilterFileService {
 
       if (pa01Plans.length > 0) {
         const pa01FilePath = path.join(tempDir, `pa01-plans-${Date.now()}.xlsx`);
-        writeExcelFile(pa01Plans, pa01FilePath, 'PA01 Plans');
+        // Incluir el encabezado junto con las filas de datos
+        const pa01PlanData = [jsonData[0], ...pa01Plans]; // Aquí se asume que jsonData[0] es el encabezado
+        writeExcelFile(pa01PlanData, pa01FilePath, 'PA01 Plans');
         tempPlanFiles.push(pa01FilePath);
         savedFileNames.push(path.basename(pa01FilePath));
+
+        console.log(`PA01 Plans file created at ${pa01FilePath}`);
       }
 
       if (otherPlans.length > 0) {
         const otherPlansFilePath = path.join(tempDir, `other-plans-${Date.now()}.xlsx`);
-        writeExcelFile(otherPlans, otherPlansFilePath, 'Other Plans');
+        // Incluir el encabezado junto con las filas de datos
+        const otherPlansData = [jsonData[0], ...otherPlans]; // Aquí se asume que jsonData[0] es el encabezado
+        writeExcelFile(otherPlansData, otherPlansFilePath, 'Other Plans');
         tempPlanFiles.push(otherPlansFilePath);
         savedFileNames.push(path.basename(otherPlansFilePath));
+
+        console.log(`Other Plans file created at ${otherPlansFilePath}`);
       }
 
       if (removedPlans.length > 0) {
         const removedPlansFilePath = path.join(tempDir, `removed-plans-${Date.now()}.xlsx`);
-        writeExcelFile(removedPlans, removedPlansFilePath, 'Removed Plans');
+        // Incluir el encabezado junto con las filas de datos
+        const removedPlansData = [jsonData[0], ...removedPlans]; // Aquí se asume que jsonData[0] es el encabezado
+        writeExcelFile(removedPlansData, removedPlansFilePath, 'Removed Plans');
         tempPlanFiles.push(removedPlansFilePath);
+
+        console.log(`Removed files has been removed`);
       }
 
       // Guardar los archivos finales y eliminar los temporales
@@ -64,7 +76,7 @@ export class FilterFileService {
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           userId
         );
-        // await this.fileStorageService.deleteTempFile(tempFile);
+        //TODO await this.fileStorageService.deleteTempFile(tempFile);
       }
 
       // Eliminar archivo temporal de números filtrados

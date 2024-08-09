@@ -48,7 +48,6 @@ export class WhatsAppService implements OnModuleInit {
 
   async isWhatsAppUser(phoneNumber: string): Promise<boolean> {
     try {
-      console.log(phoneNumber);
       
       if (phoneNumber === "" || phoneNumber === null || !phoneNumber.startsWith("5409351")) {
         return false;
