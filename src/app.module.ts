@@ -23,6 +23,7 @@ import { QueuesModule } from './stage-two/scraping/queues.module';
 import { ScrapingController } from './stage-two/scraping/scraping.controller';
 import { ScrapingService } from './stage-two/scraping/scraping.service';
 import { WhatsAppProcessor } from './stage-two/WhatsAppProcessor';
+import { HttpModule } from '@nestjs/axios';
 
 
 @Module({
@@ -67,6 +68,8 @@ import { WhatsAppProcessor } from './stage-two/WhatsAppProcessor';
         backoff: 5000,  // Tiempo de espera entre intentos
       },
     }),
+
+    HttpModule
   ], 
 
 
