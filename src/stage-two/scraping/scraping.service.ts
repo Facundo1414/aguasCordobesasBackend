@@ -89,8 +89,6 @@ export class ScrapingService {
       }
     });
 
-    await page.screenshot({ path: 'before-click.png', fullPage: true });
-
     await page.click('#btn-generarDocRweb');
 
     const downloadUrl = await page.waitForResponse(response => {
