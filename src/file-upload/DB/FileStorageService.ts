@@ -2,7 +2,6 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Client } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as xlsx from 'xlsx';
 
 @Injectable()
 export class FileStorageService implements OnModuleDestroy {
@@ -69,19 +68,40 @@ export class FileStorageService implements OnModuleDestroy {
   async getFile(fileName: string): Promise<string> {
     try {
       const query = 'SELECT file_name, data FROM file_storage WHERE file_name = $1';
+      console.log(`Querying for file: ${fileName}`);
       const result = await this.client.query(query, [fileName]);
-
+  
       if (result.rows.length === 0) {
+        console.error(`File with name "${fileName}" not found in database.`);
         throw new Error('File not found');
       }
-
+  
       const { file_name, data } = result.rows[0];
       const tempFilePath = path.join(this.tempDir, file_name);
-
-      fs.writeFileSync(tempFilePath, data);
+  
+      try {
+        fs.writeFileSync(tempFilePath, data);
+        console.log(`File written to temporary directory: ${tempFilePath}`);
+      } catch (writeError) {
+        console.error(`Error writing file to temporary directory: ${writeError.message}`);
+        throw writeError;
+      }
+  
       return tempFilePath;
     } catch (error) {
       console.error('Error retrieving file from database:', error);
+      throw error;
+    }
+  }
+  
+
+  async getFilePath(fileName: string): Promise<string> {
+    try {
+      // Busca el archivo en la base de datos y lo guarda en el directorio temporal
+      const tempFilePath = await this.getFile(fileName);
+      return tempFilePath;
+    } catch (error) {
+      console.error('Error getting file path:', error);
       throw error;
     }
   }
@@ -92,15 +112,5 @@ export class FileStorageService implements OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.client.end();
-  }
-
-  // Método para el stage 2
-  getClientIdsFromFile(fileId: string): string[] {
-    const filePath = `/uploads/${fileId}.xlsx`; // TODO: actualizar ubicación
-    const workbook = xlsx.readFile(filePath);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const data = xlsx.utils.sheet_to_json(sheet);
-
-    return data.map(row => row['Client UF']);
   }
 }

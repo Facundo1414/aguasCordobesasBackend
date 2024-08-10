@@ -45,10 +45,8 @@ export class WhatsAppService implements OnModuleInit {
     this.client.initialize();
   }
 
-
   async isWhatsAppUser(phoneNumber: string): Promise<boolean> {
     try {
-      
       if (phoneNumber === "" || phoneNumber === null || !phoneNumber.startsWith("5409351")) {
         return false;
       }
@@ -71,14 +69,12 @@ export class WhatsAppService implements OnModuleInit {
     }
   }
 
-
-  // BLOQUE DE METODOS PARA EL STAGE 2
-  async sendPDF(clientId: string, filePath: string): Promise<void> {
-    const phoneNumber = await this.getPhoneNumber(clientId);
-    const chatId = `${phoneNumber}@c.us`;
-
+  async sendPDF(phoneNumber: string, filePath: string, clientName: string): Promise<void> {
     try {
+      const chatId = `${phoneNumber}@c.us`;
       const media = MessageMedia.fromFilePath(filePath);
+      const message = `Hola ${clientName}, aquí está el PDF que solicitaste.`;
+      await this.client.sendMessage(chatId, message);
       await this.client.sendMessage(chatId, media);
       console.log(`PDF sent to ${phoneNumber}`);
     } catch (error) {
@@ -86,13 +82,7 @@ export class WhatsAppService implements OnModuleInit {
     }
   }
 
-  async addToQueue(clientId: string, filePath: string): Promise<void> {
-    await this.whatsappQueue.add({ clientId, filePath });
+  async addToQueue(phoneNumber: string, clientName: string, filePath: string): Promise<void> {
+    await this.whatsappQueue.add({ phoneNumber, clientName, filePath });
   }
-
-  private async getPhoneNumber(clientId: string): Promise<string> {
-    // TODO Implementa la lógica para obtener el número de teléfono del cliente según el clientId
-    return '+1234567890';
-  }
-
 }

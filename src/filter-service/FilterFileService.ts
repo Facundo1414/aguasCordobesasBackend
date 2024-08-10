@@ -76,7 +76,7 @@ export class FilterFileService {
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           userId
         );
-        //TODO await this.fileStorageService.deleteTempFile(tempFile);
+        await this.fileStorageService.deleteTempFile(tempFile);
       }
 
       // Eliminar archivo temporal de números filtrados

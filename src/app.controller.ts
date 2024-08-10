@@ -8,24 +8,5 @@ export class AppController {
     private readonly whatsappService: WhatsAppService
   ) {}
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
 
-  @Post('send-message')
-  async sendMessage(
-    @Body('phoneNumber') phoneNumber: string,
-    @Body('message') message: string,
-  ): Promise<void> {
-    await this.whatsappService.sendMessage(phoneNumber, message);
-  }
-
-  @Get('check-whatsapp')
-  async checkWhatsApp(
-    @Query('phoneNumber') phoneNumber: string,
-  ): Promise<{ isRegistered: boolean }> {
-    const isRegistered = await this.whatsappService.isWhatsAppUser(phoneNumber);
-    return { isRegistered };
-  }
 }

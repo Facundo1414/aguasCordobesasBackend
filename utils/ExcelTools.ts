@@ -17,7 +17,7 @@ export function writeExcelFile(data: any[], outputFilePath: string, sheetName: s
     }
   
   const workbook = xlsx.utils.book_new();
-  const worksheet = xlsx.utils.json_to_sheet(data);
+  const worksheet = xlsx.utils.json_to_sheet(data, { skipHeader: true });
   xlsx.utils.book_append_sheet(workbook, worksheet, sheetName);
   xlsx.writeFile(workbook, outputFilePath);
 }
