@@ -14,103 +14,82 @@ export class ScrapingService {
     private readonly httpService: HttpService
   ) {}
 
-  async scrape(searchValue: string): Promise<string> {
-    function delay(ms: number): Promise<void> {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    const browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      headless: true,
-    });
-
-    const page = await browser.newPage();
+  private async createDownloadsDir(): Promise<string> {
     const downloadsPath = path.join(__dirname, '..', 'downloads');
-    if (!fs.existsSync(downloadsPath)) {
-      fs.mkdirSync(downloadsPath, { recursive: true });
+    try {
+      if (!fs.existsSync(downloadsPath)) {
+        fs.mkdirSync(downloadsPath, { recursive: true });
+      }
+      return downloadsPath;
+    } catch (error) {
+      console.error('Error creating downloads directory:', error);
+      throw new Error('Failed to create downloads directory');
     }
+  }
 
-    await page.goto('https://www.aguascordobesas.com.ar/espacioClientes/seccion/gestionDeuda', { waitUntil: 'networkidle2' });
-    await page.waitForSelector('#searchUf', { timeout: 10000 });
-    await page.type('#searchUf', searchValue);
-    await page.click("#btn-searchUf");
+  async scrape(searchValue: string): Promise<string> {
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    let browser: puppeteer.Browser | null = null;
 
+    try {
+      browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        headless: true,
+      });
 
-    // const isChecked = await page.evaluate(() => {
-    //   const checkbox = document.querySelector<HTMLInputElement>('#includeVencidos');
-    //   return checkbox ? checkbox.checked : false;
-    // });
+      const page = await browser.newPage();
+      const downloadsPath = await this.createDownloadsDir();
 
-    // if (!isChecked) {
-    //   await page.evaluate(() => {
-    //     const checkbox = document.querySelector<HTMLInputElement>('#includeVencidos');
-    //     const overlay = document.querySelector<HTMLElement>('#btn-showInfoSelAllVenc');
-    //     if (checkbox) {
-    //       checkbox.style.pointerEvents = 'auto';
-    //       checkbox.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-    //     }
-    //     if (overlay) {
-    //       overlay.style.display = 'none';
-    //     }
-    //   });
+      await page.goto('https://www.aguascordobesas.com.ar/espacioClientes/seccion/gestionDeuda', { waitUntil: 'networkidle2' });
+      await page.waitForSelector('#searchUf', { timeout: 10000 });
+      await page.type('#searchUf', searchValue);
+      await page.click('#btn-searchUf');
 
-    //   await page.waitForSelector('#includeVencidos', { visible: true });
-    //   await page.click('#includeVencidos');
-    // }
+      await page.waitForSelector('#btn-pagoDeudaEf', { visible: true });
+      await page.click('#btn-pagoDeudaEf');
+      await delay(2000);
 
-    await page.waitForSelector("#btn-pagoDeudaEf", { visible: true });
-    await page.click("#btn-pagoDeudaEf");
-    await delay(2000);
+      await page.waitForSelector('#selVencimiento', { visible: true });
+      await page.click('#selVencimiento');
 
-    await page.waitForSelector("#selVencimiento", { visible: true });
-    await page.click("#selVencimiento");
-
-    await page.evaluate(() => {
-      const selectElement = document.querySelector<HTMLSelectElement>('#selVencimiento');
-      if (selectElement) {
-        const options = selectElement.querySelectorAll<HTMLOptionElement>('option');
-        if (options.length > 1) {
-          selectElement.value = options[1].value;
+      await page.evaluate(() => {
+        const selectElement = document.querySelector<HTMLSelectElement>('#selVencimiento');
+        if (selectElement && selectElement.options.length > 1) {
+          selectElement.value = selectElement.options[1].value;
           selectElement.dispatchEvent(new Event('change', { bubbles: true }));
         }
-      }
-    });
+      });
 
-    await page.waitForFunction(() => {
-      const button = document.querySelector('#btn-generarDocRweb') as HTMLButtonElement | null;
-      return button !== null && !button.disabled && button.offsetParent !== null && getComputedStyle(button).visibility !== 'hidden';
-    }, { timeout: 20000 });
+      await page.waitForFunction(() => {
+        const button = document.querySelector<HTMLButtonElement>('#btn-generarDocRweb');
+        return button && !button.disabled && getComputedStyle(button).visibility !== 'hidden';
+      }, { timeout: 20000 });
 
-    await page.evaluate(() => {
-      const button = document.querySelector('#btn-generarDocRweb') as HTMLButtonElement | null;
-      if (button) {
-        button.focus();
-        button.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-      }
-    });
+      await page.click('#btn-generarDocRweb');
 
-    await page.click('#btn-generarDocRweb');
+      const downloadUrl = await page.waitForResponse(response => {
+        return response.url().includes('downloadDocDeuda') && response.status() === 200;
+      }, { timeout: 30000 });
 
-    const downloadUrl = await page.waitForResponse(response => {
-      return response.url().includes('downloadDocDeuda') && response.status() === 200;
-    }, { timeout: 30000 });
-
-    if (downloadUrl) {
-      const pdfUrl = downloadUrl.url();
-      try {
-        const { data } = await lastValueFrom(this.httpService.get(pdfUrl, { responseType: 'arraybuffer' }));
+      if (downloadUrl) {
+        const pdfUrl = downloadUrl.url();
         const pdfPath = path.join(downloadsPath, `${searchValue}.pdf`);
+        const { data } = await lastValueFrom(this.httpService.get(pdfUrl, { responseType: 'arraybuffer' }));
         fs.writeFileSync(pdfPath, data);
         console.log('PDF downloaded:', pdfPath);
-      } catch (err) {
-        console.error('Error saving PDF:', err);
+        return pdfPath;
+      } else {
+        console.error('Failed to find download URL.');
+        throw new Error('Failed to find download URL');
       }
-    } else {
-      console.error('Failed to find download URL.');
+    } catch (error) {
+      console.error('Scraping error:', error);
+      throw error;
+    } finally {
+      if (browser) {
+        await browser.close();
+      }
     }
-
-    await browser.close();
-    return path.join(downloadsPath, `${searchValue}.pdf`);
   }
 
   async addToQueue(searchValue: string): Promise<void> {

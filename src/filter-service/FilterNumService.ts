@@ -16,9 +16,9 @@ export class FilterNumService {
     const cleanedNumber = phoneNumber.replace(/\D/g, ''); // Elimina cualquier carácter no numérico
 
     if (cleanedNumber.startsWith('351')) {
-      return `5409${cleanedNumber}`;
+      return `549${cleanedNumber}`;
     } else if (cleanedNumber.startsWith('15')) {
-      return `5409351${cleanedNumber.substring(2)}`;
+      return `549351${cleanedNumber.substring(2)}`;
     } else {
       return phoneNumber;
     }
