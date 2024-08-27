@@ -20,29 +20,21 @@
 
     @Post('process-file/:fileName')
     async processFile(@Param('fileName') fileName: string): Promise<void> {
-      // Retrieve the file path from the storage service
       const filePath = await this.fileStorageService.getFilePath(fileName);
       const downloadsPath = path.join(__dirname, '..', 'stage-two/downloads');
-      
-      // Read the Excel file and extract data
       const jsonData = readExcelFile(filePath);
-
-      // Skip the first row (headers) by using slice(1)
-      for (const row of jsonData.slice(1)) {
-        const clientUF = row[0]?.toString().trim(); // Ensure clientUF is a string
-        const clientPhoneNumber = row[1]?.toString().trim() || row[2]?.toString().trim(); // Prioritize column 1
+    
+      const scrapingPromises = jsonData.slice(1).map(async (row) => {
+        const clientUF = row[0]?.toString().trim();
+        const clientPhoneNumber = row[1]?.toString().trim() || row[2]?.toString().trim();
         const clientName = row[6]?.toString().trim();
-
-        // Validate the phone number
+    
         if (clientPhoneNumber && clientPhoneNumber.startsWith('549351')) {
           try {
-            // Add the scraping job to the queue
             const pdfPath = await this.scrapingService.scrape(clientUF);
             
             if (pdfPath) {
               await this.whatsAppService.sendPDF(clientPhoneNumber, clientName, pdfPath);
-
-              emptyDownloadsFolder(downloadsPath);
             } else {
               console.error(`Failed to download PDF for UF: ${clientUF}`);
             }
@@ -52,10 +44,15 @@
         } else {
           console.warn(`Invalid or missing phone number for UF: ${clientUF}, row: ${row}`);
         }
-      }
-
+      });
+    
+      // Wait for all scraping tasks to complete
+      await Promise.all(scrapingPromises);
+    
+      // Clean up downloads folder after all tasks are done
+      emptyDownloadsFolder(downloadsPath);
+    
       console.log("Process Controller Service End");
-      
     }
 
     @Get('status')
