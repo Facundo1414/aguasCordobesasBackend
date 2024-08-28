@@ -11,6 +11,7 @@ import { Cluster } from 'puppeteer-cluster';
 @Injectable()
 export class ScrapingService implements OnModuleDestroy {
   private cluster: Cluster<any, any>;
+  private ufWithoutDebt: string[] = []; // Array para almacenar UFs sin deuda
 
   constructor(
     @InjectQueue('scraping') private readonly scrapingQueue: Queue,
@@ -53,6 +54,7 @@ export class ScrapingService implements OnModuleDestroy {
         
         if (!modalOpened) {
           console.log(`El cliente con UF ${searchValue} no tiene deudas. Omite la descarga del PDF.`);
+          this.ufWithoutDebt.push(searchValue); // Agrega el UF sin deuda al array
           return null; // Retorna null para indicar que no hay PDF que descargar
         }
 
@@ -114,6 +116,10 @@ export class ScrapingService implements OnModuleDestroy {
       console.error('Scraping error:', error);
       throw error;
     }
+  }
+
+  async getUFsWithoutDebt(): Promise<string[]> {
+    return this.ufWithoutDebt; // Retorna el array con los UFs sin deuda
   }
 
   async onModuleDestroy() {

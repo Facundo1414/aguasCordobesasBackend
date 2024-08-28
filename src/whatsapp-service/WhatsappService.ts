@@ -72,7 +72,6 @@ export class WhatsAppService implements OnModuleInit {
 
   async sendPDF(phoneNumber: string, clientName: string, filePath: string): Promise<void> {
     try {
-        // Verificar si el archivo existe
         if (!fs.existsSync(filePath)) {
             console.error('File not found:', filePath);
             return;
@@ -80,14 +79,15 @@ export class WhatsAppService implements OnModuleInit {
 
         const chatId = `${phoneNumber}@c.us`;
         const media = MessageMedia.fromFilePath(filePath);
-        const message = `Hola ${clientName}, aquí está el PDF que solicitaste.`;
-        await this.client.sendMessage(chatId, message);
-        await this.client.sendMessage(chatId, media);
+        const caption = `Hola ${clientName}, aquí está el PDF que solicitaste.`;
+        await this.client.sendMessage(chatId, media, { caption });
         console.log(`PDF sent to ${phoneNumber}`);
     } catch (error) {
-        console.error('Error sending PDF:', error);
+        console.error('Error sending PDF:', error.message);
+        console.error('Stack trace:', error.stack);
     }
-}
+  }
+
 
 
   async sendMessageWithRetry(phoneNumber: string, message: string, retries: number = 3): Promise<void> {
