@@ -1,50 +1,116 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
-import * as qrcode from 'qrcode-terminal';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import * as QRCode from 'qrcode';
 import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class WhatsAppService implements OnModuleInit {
   private client: Client;
+  private isInitialized = false;
 
-  constructor(
-    @InjectQueue('whatsapp') private readonly whatsappQueue: Queue
-  ) {
+  constructor() {
     this.client = new Client({
       authStrategy: new LocalAuth(),
+      puppeteer: {
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      },
     });
   }
 
   onModuleInit() {
-    this.initializeWhatsApp();
+    this.initializeWhatsApp().catch((error) => {
+      console.error('Error during WhatsApp initialization:', error);
+    });
   }
 
-  initializeWhatsApp() {
-    this.client.on('qr', (qr) => {
-      qrcode.generate(qr, { small: true });
+  private async initializeWhatsApp(): Promise<void> {
+    if (this.isInitialized) return;
+  
+    return new Promise<void>(async (resolve, reject) => {
+      this.client.on('qr', (qr) => {
+        console.log('Received QR Code:', qr);
+        const qrPath = path.join(__dirname, '..', 'qr', 'qrcode.png');
+        this.generateQRCode(qr, qrPath)
+          .then(() => {
+            console.log('QR code saved to:', qrPath);
+            resolve();
+          })
+          .catch((err) => {
+            console.error('Error saving QR code:', err);
+            reject(err);
+          });
+      });
+  
+      this.client.on('ready', () => {
+        console.log('WhatsApp Web Client is ready!');
+        this.isInitialized = true;
+      });
+  
+      this.client.on('auth_failure', (msg) => {
+        console.error('Authentication failure', msg);
+      });
+  
+      this.client.on('authenticated', () => {
+        console.log('Authenticated successfully');
+      });
+  
+      this.client.on('disconnected', (reason) => {
+        console.log('WhatsApp Web Client was logged out', reason);
+        this.client.initialize();
+      });
+  
+      try {
+        await this.client.initialize();
+      } catch (error) {
+        console.error('Initialization error:', error);
+        reject(error);
+      }
     });
-
-    this.client.on('ready', () => {
-      console.log('WhatsApp Web Client is ready!');
-    });
-
-    this.client.on('auth_failure', (msg) => {
-      console.error('Authentication failure', msg);
-    });
-
-    this.client.on('authenticated', () => {
-      console.log('Authenticated successfully');
-    });
-
-    this.client.on('disconnected', (reason) => {
-      console.log('WhatsApp Web Client was logged out', reason);
-      this.client.initialize();
-    });
-
-    this.client.initialize();
   }
+
+  private async generateQRCode(qr: string, filePath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const qrDir = path.dirname(filePath);
+      if (!fs.existsSync(qrDir)) {
+        fs.mkdirSync(qrDir, { recursive: true });
+      }
+
+      QRCode.toFile(filePath, qr, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+  
+  async getQRCode(): Promise<string> {
+    this.isInitialized = true;
+    console.log("get qr process started");
+    
+    await this.initializeWhatsApp();
+  
+    const qrPath = path.join(__dirname, '..', 'qr', 'qrcode.png');
+  
+    // Esperar hasta que el archivo QR esté disponible
+    const checkInterval = 500; // Intervalo en ms para verificar la existencia del archivo
+    const maxRetries = 20; // Número máximo de intentos de verificación
+    let retries = 0;
+  
+    while (!fs.existsSync(qrPath) && retries < maxRetries) {
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      retries++;
+    }
+  
+    if (fs.existsSync(qrPath)) {
+      return qrPath;
+    } else {
+      throw new Error('QR Code not available yet.');
+    }
+  }
+  
 
   async isWhatsAppUser(phoneNumber: string): Promise<boolean> {
     try {
@@ -72,23 +138,21 @@ export class WhatsAppService implements OnModuleInit {
 
   async sendPDF(phoneNumber: string, clientName: string, filePath: string): Promise<void> {
     try {
-        if (!fs.existsSync(filePath)) {
-            console.error('File not found:', filePath);
-            return;
-        }
+      if (!fs.existsSync(filePath)) {
+        console.error('File not found:', filePath);
+        return;
+      }
 
-        const chatId = `${phoneNumber}@c.us`;
-        const media = MessageMedia.fromFilePath(filePath);
-        const caption = `Hola ${clientName}, aquí está el PDF que solicitaste.`;
-        await this.client.sendMessage(chatId, media, { caption });
-        console.log(`PDF sent to ${phoneNumber}`);
+      const chatId = `${phoneNumber}@c.us`;
+      const media = MessageMedia.fromFilePath(filePath);
+      const caption = `Hola ${clientName}, aquí está el PDF que solicitaste.`;
+      await this.client.sendMessage(chatId, media, { caption });
+      console.log(`PDF sent to ${phoneNumber}`);
     } catch (error) {
-        console.error('Error sending PDF:', error.message);
-        console.error('Stack trace:', error.stack);
+      console.error('Error sending PDF:', error.message);
+      console.error('Stack trace:', error.stack);
     }
   }
-
-
 
   async sendMessageWithRetry(phoneNumber: string, message: string, retries: number = 3): Promise<void> {
     for (let attempt = 1; attempt <= retries; attempt++) {
@@ -104,15 +168,4 @@ export class WhatsAppService implements OnModuleInit {
       }
     }
   }
-  
-
-  async addToQueue(phoneNumber: string, clientName: string, filePath: string): Promise<void> {
-    await this.whatsappQueue.add({ phoneNumber, clientName, filePath }, {
-      attempts: 3,       // Retry up to 3 times
-      priority: 2,       // Set job priority
-      delay: 5000,       // Delay the job by 5 seconds
-      removeOnComplete: true, // Remove the job from the queue once completed
-    });
-  }
-  
 }

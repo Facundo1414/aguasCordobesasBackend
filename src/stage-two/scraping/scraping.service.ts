@@ -30,7 +30,7 @@ export class ScrapingService implements OnModuleDestroy {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         headless: true,
       },
-      monitor: true, // Habilita el monitor para ver el progreso en tiempo real
+      //monitor: true, // Habilita el monitor para ver el progreso en tiempo real
     });
 
     // Define la tarea que ejecutará cada worker en paralelo
