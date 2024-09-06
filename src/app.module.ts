@@ -24,6 +24,7 @@ import { ScrapingController } from './stage-two/scraping/scraping.controller';
 import { ScrapingService } from './stage-two/scraping/scraping.service';
 import { WhatsAppProcessor } from './stage-two/WhatsAppProcessor';
 import { HttpModule } from '@nestjs/axios';
+import { ScheduleModule } from '@nestjs/schedule';
 
 
 @Module({
@@ -69,7 +70,9 @@ import { HttpModule } from '@nestjs/axios';
       },
     }),
 
-    HttpModule
+    HttpModule,
+
+    ScheduleModule.forRoot()
   ], 
 
 

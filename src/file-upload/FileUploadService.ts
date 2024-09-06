@@ -17,34 +17,29 @@ export class FileUploadService {
       throw new BadRequestException('Archivo no encontrado');
     }
 
-    // Leer el archivo desde el sistema de archivos
-    const fileBuffer = fs.readFileSync(filePath);
-    
-    // Leer el archivo Excel
-    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-
-    // Convertir la hoja de cálculo a JSON
-    const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
-
-    // Asegúrate de que jsonData sea un array de arrays
-    if (!Array.isArray(jsonData) || !Array.isArray(jsonData[0])) {
-      throw new Error('El formato del archivo no es válido');
-    }
-
     try {
-      // Llamar al servicio de filtro y obtener los nombres de archivos guardados
+      const fileBuffer = fs.readFileSync(filePath);
+      const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+
+      if (!Array.isArray(jsonData) || !Array.isArray(jsonData[0])) {
+        throw new Error('El formato del archivo no es válido');
+      }
+
       const savedFileNames = await this.filterFileService.processFile(filePath, 1);
 
+      // Eliminar el archivo después de procesarlo
+      fs.unlinkSync(filePath);
+
       return {
-        message: 'Archivo subido exitosamente',
-        filePath,
+        message: 'Archivo subido y procesado exitosamente',
         savedFileNames,
       };
     } catch (error) {
       console.error('Error processing file:', error);
-      throw error;
+      throw new BadRequestException('Error procesando el archivo');
     }
   }
 }

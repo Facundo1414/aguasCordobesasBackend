@@ -49,7 +49,12 @@ export class FileUploadController {
     if (!file) {
       throw new BadRequestException('Invalid file or file buffer');
     }
-    // Puedes agregar más validaciones o procesamiento aquí
-    return this.fileUploadService.handleFileUpload(file);
+    try {
+      const result = await this.fileUploadService.handleFileUpload(file);
+      return result;
+    } catch (error) {
+      console.error('Error processing file:', error);
+      throw new BadRequestException('Error processing file');
+    }
   }
 }
