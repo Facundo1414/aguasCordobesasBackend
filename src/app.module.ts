@@ -25,6 +25,7 @@ import { ScrapingService } from './stage-two/scraping/scraping.service';
 import { WhatsAppProcessor } from './stage-two/WhatsAppProcessor';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ProcessGateway } from './stage-two/process.gateway';
 
 
 @Module({
@@ -97,7 +98,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     CleanupService,
     ScrapingProcessor,
     WhatsAppProcessor,
-    ScrapingService
+    ScrapingService,
+    ProcessGateway
   ],
 
 

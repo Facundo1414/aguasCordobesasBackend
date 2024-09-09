@@ -6,8 +6,9 @@ import { WhatsAppService } from 'src/whatsapp-service/WhatsappService';
 import { ScrapingService } from './scraping/scraping.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { readExcelFile, writeExcelFile, emptyDownloadsFolder } from '../../utils/ExcelTools';
+import { readExcelFile, writeExcelFile, emptyDownloadsFolder, writeExcelFileForDownload } from '../../utils/ExcelTools';
 import * as fs from 'fs';
+import { ProcessGateway } from './process.gateway';
 
 @Controller('process')
 export class ProcessController {
@@ -17,6 +18,7 @@ export class ProcessController {
     private readonly fileStorageService: FileStorageService,
     private readonly scrapingService: ScrapingService,
     private readonly whatsAppService: WhatsAppService,
+    private readonly processGateway: ProcessGateway,
     @InjectQueue('scraping') private readonly scrapingQueue: Queue,
     @InjectQueue('whatsapp') private readonly whatsappQueue: Queue
   ) {}
@@ -41,17 +43,23 @@ export class ProcessController {
             if (pdfPath) {
               await this.whatsAppService.sendPDF(clientPhoneNumber, clientName, pdfPath);
 
+              this.processGateway.sendLogMessage(`Mensaje enviado a ${clientName} (${clientPhoneNumber})`);
               // Eliminar el archivo PDF temporal después de enviarlo
               fs.unlinkSync(pdfPath);
               this.logger.log(`Archivo temporal ${pdfPath} eliminado.`);
             } else {
+              this.processGateway.sendLogMessage(`No hay PDF disponible para ${clientName} (UF: ${clientUF}). Posiblemente no hay deuda.`);
               this.logger.warn(`No hay PDF disponible para UF: ${clientUF}. Posiblemente no hay deuda.`);
             }
           } catch (error) {
             this.logger.error(`Error procesando UF ${clientUF}:`, error);
+            this.processGateway.sendLogMessage(`Error al procesar ${clientName} (UF: ${clientUF}): ${error.message}`);
+
           }
         } else {
           this.logger.warn(`Datos incompletos para la fila: ${JSON.stringify(row)}`);
+          this.processGateway.sendLogMessage(`Datos incompletos para ${clientName} (UF: ${clientUF})`);
+
         }
       });
 
@@ -61,7 +69,7 @@ export class ProcessController {
       // Recuperar los UFs sin deuda
       const clientesSinDeuda = await this.scrapingService.getUFsWithoutDebt();
 
-      let sinDeudaFilePath = '';
+      let excelBuffer: Buffer | null = null;
       if (clientesSinDeuda && clientesSinDeuda.length > 0) {
         // Filtrar los datos originales del Excel para incluir solo las filas con UF en clientesSinDeuda
         const headers = jsonData[0]; // Suponiendo que la primera fila contiene encabezados
@@ -78,30 +86,23 @@ export class ProcessController {
           return rowObject;
         });
 
-        // Definir la ruta para el nuevo archivo Excel
-        sinDeudaFilePath = path.join(__dirname, '..', 'stage-two', 'clientes-sin-deuda.xlsx');
-
-        // Escribir los datos filtrados en un nuevo archivo Excel
-        writeExcelFile(dataToWrite, sinDeudaFilePath, 'ClientesSinDeuda');
-
-        this.logger.log(`Archivo de clientes sin deuda generado en: ${sinDeudaFilePath}`);
+        // Generar el archivo Excel en memoria
+        excelBuffer = writeExcelFileForDownload(dataToWrite, 'ClientesSinDeuda');
       }
 
       // Limpiar la carpeta de descargas después de que todas las tareas se hayan completado
       emptyDownloadsFolder(downloadsPath);
-
-      // Eliminar el archivo temporal
       if (fs.existsSync(tempFilePath)) {
         fs.unlinkSync(tempFilePath);
         this.logger.log(`Archivo temporal ${tempFilePath} eliminado.`);
       }
 
       // Enviar respuesta al cliente
-      if (sinDeudaFilePath) {
-        res.status(200).json({
-          message: 'Proceso completado con éxito.',
-          file: sinDeudaFilePath
-        });
+      if (excelBuffer) {
+        res.setHeader('Content-Disposition', 'attachment; filename=clientes-sin-deuda.xlsx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.status(200).send(excelBuffer);
+
       } else {
         res.status(200).json({
           message: 'Proceso completado con éxito, no se encontraron clientes sin deuda.'

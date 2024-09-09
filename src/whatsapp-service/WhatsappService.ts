@@ -145,7 +145,7 @@ export class WhatsAppService implements OnModuleInit {
 
       const chatId = `${phoneNumber}@c.us`;
       const media = MessageMedia.fromFilePath(filePath);
-      const caption = `Hola ${clientName}, aquí está el PDF que solicitaste.`;
+      const caption = `Hola ${clientName}, te envío el PDF actualizado. Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago. <Cclip, al servicio de Aguas Cordobesas>`;
       await this.client.sendMessage(chatId, media, { caption });
       console.log(`PDF sent to ${phoneNumber}`);
     } catch (error) {

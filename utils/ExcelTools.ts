@@ -16,9 +16,16 @@ export function writeExcelFile(data: any[], outputFilePath: string, sheetName: s
   }
 
   const workbook = xlsx.utils.book_new();
-  const worksheet = xlsx.utils.json_to_sheet(data, { skipHeader: true });
+  const worksheet = xlsx.utils.json_to_sheet(data);
   xlsx.utils.book_append_sheet(workbook, worksheet, sheetName);
   xlsx.writeFile(workbook, outputFilePath);
+}
+
+export function writeExcelFileForDownload(data: any[], sheetName: string): Buffer {
+  const workbook = xlsx.utils.book_new();
+  const worksheet = xlsx.utils.json_to_sheet(data, { skipHeader: true });
+  xlsx.utils.book_append_sheet(workbook, worksheet, sheetName);
+  return xlsx.write(workbook, { bookType: 'xlsx', type: 'buffer' });
 }
 
 export function emptyDownloadsFolder(directoryPath: string): void {

@@ -24,7 +24,7 @@ export class ScrapingService implements OnModuleDestroy {
     this.cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
       maxConcurrency: 6, // Define cuántas tareas quieres ejecutar en paralelo
-      timeout: 60000, // Aumentar el timeout a 60 segundos
+      timeout: 120000, // Aumentar el timeout a 120 segundos
       retryLimit: 3, // Reintentar hasta 3 veces si un trabajo falla
       puppeteerOptions: {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -41,16 +41,24 @@ export class ScrapingService implements OnModuleDestroy {
       try {
         await page.goto('https://www.aguascordobesas.com.ar/espacioClientes/seccion/gestionDeuda', { waitUntil: 'networkidle2' });
 
-        await page.waitForSelector('#searchUf', { timeout: 10000 });
+        await page.waitForSelector('#searchUf', { timeout: 15000 });
         await page.type('#searchUf', searchValue);
         await page.click('#btn-searchUf');
 
-        await page.waitForSelector('#btn-pagoDeudaEf', { visible: true });
+        const btnSelector = '#btn-pagoDeudaEf';
+        await this.delay(20000);
+        const btnVisible = await page.waitForSelector(btnSelector, { visible: true, timeout: 30000 }).catch(() => false);
+
+        if (!btnVisible) {
+          console.log(`btn-searchUf no esta disponible se agrego el cliente con UF ${searchValue} a clientes sin deudas. Omite la descarga del PDF.`);
+          this.ufWithoutDebt.push(searchValue); // Agrega el UF sin deuda al array
+          return null; // Retorna null para indicar que no hay PDF que descargar
+        }
         await page.click('#btn-pagoDeudaEf');
         await this.delay(2000);
 
         // Verifica si el modal se abrió correctamente
-        const modalOpened = await page.waitForSelector('#selVencimiento', { visible: true, timeout: 5000 }).catch(() => false);
+        const modalOpened = await page.waitForSelector('#selVencimiento', { visible: true, timeout: 10000 }).catch(() => false);
         
         if (!modalOpened) {
           console.log(`El cliente con UF ${searchValue} no tiene deudas. Omite la descarga del PDF.`);
@@ -71,7 +79,7 @@ export class ScrapingService implements OnModuleDestroy {
         await page.waitForFunction(() => {
           const button = document.querySelector<HTMLButtonElement>('#btn-generarDocRweb');
           return button && !button.disabled && getComputedStyle(button).visibility !== 'hidden';
-        }, { timeout: 20000 });
+        }, { timeout: 35000 });
 
         await page.click('#btn-generarDocRweb');
 
