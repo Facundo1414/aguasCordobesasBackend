@@ -23,14 +23,13 @@ export class ScrapingService implements OnModuleDestroy {
   private async initCluster() {
     this.cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 6, // Define cuántas tareas quieres ejecutar en paralelo
-      timeout: 120000, // Aumentar el timeout a 120 segundos
+      maxConcurrency: 5, // Define cuántas tareas quieres ejecutar en paralelo
+      timeout: 200000, // Aumentar el timeout a 200 segundos
       retryLimit: 3, // Reintentar hasta 3 veces si un trabajo falla
       puppeteerOptions: {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless: true,
+        headless: false,
       },
-      //monitor: true, // Habilita el monitor para ver el progreso en tiempo real
     });
 
     // Define la tarea que ejecutará cada worker en paralelo
@@ -39,76 +38,200 @@ export class ScrapingService implements OnModuleDestroy {
       console.log(`Processing search value: ${searchValue}`);
 
       try {
-        await page.goto('https://www.aguascordobesas.com.ar/espacioClientes/seccion/gestionDeuda', { waitUntil: 'networkidle2' });
+        await this.navigateToPage(page);
+        await this.searchForUF(page, searchValue);
 
-        await page.waitForSelector('#searchUf', { timeout: 15000 });
-        await page.type('#searchUf', searchValue);
-        await page.click('#btn-searchUf');
+        const hasDebt = await this.checkForDebt(page, searchValue);
+        if (!hasDebt) return;
 
-        const btnSelector = '#btn-pagoDeudaEf';
-        await this.delay(20000);
-        const btnVisible = await page.waitForSelector(btnSelector, { visible: true, timeout: 30000 }).catch(() => false);
+        const downloadUrl = await this.selectCheckbox(page);
+        const pdfPath = await this.downloadPDF(page, searchValue, downloadsPath, downloadUrl);
 
-        if (!btnVisible) {
-          console.log(`btn-searchUf no esta disponible se agrego el cliente con UF ${searchValue} a clientes sin deudas. Omite la descarga del PDF.`);
-          this.ufWithoutDebt.push(searchValue); // Agrega el UF sin deuda al array
-          return null; // Retorna null para indicar que no hay PDF que descargar
-        }
-        await page.click('#btn-pagoDeudaEf');
-        await this.delay(2000);
+        return pdfPath;
 
-        // Verifica si el modal se abrió correctamente
-        const modalOpened = await page.waitForSelector('#selVencimiento', { visible: true, timeout: 10000 }).catch(() => false);
-        
-        if (!modalOpened) {
-          console.log(`El cliente con UF ${searchValue} no tiene deudas. Omite la descarga del PDF.`);
-          this.ufWithoutDebt.push(searchValue); // Agrega el UF sin deuda al array
-          return null; // Retorna null para indicar que no hay PDF que descargar
-        }
-
-        await page.click('#selVencimiento');
-
-        await page.evaluate(() => {
-          const selectElement = document.querySelector<HTMLSelectElement>('#selVencimiento');
-          if (selectElement && selectElement.options.length > 1) {
-            selectElement.value = selectElement.options[1].value;
-            selectElement.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        });
-
-        await page.waitForFunction(() => {
-          const button = document.querySelector<HTMLButtonElement>('#btn-generarDocRweb');
-          return button && !button.disabled && getComputedStyle(button).visibility !== 'hidden';
-        }, { timeout: 35000 });
-
-        await page.click('#btn-generarDocRweb');
-
-        const downloadUrl = await page.waitForResponse(response => {
-          return response.url().includes('downloadDocDeuda') && response.status() === 200;
-        }, { timeout: 30000 });
-
-        if (downloadUrl) {
-          const pdfUrl = downloadUrl.url();
-          const pdfPath = path.join(downloadsPath, `${searchValue}.pdf`);
-          const { data } = await lastValueFrom(this.httpService.get(pdfUrl, { responseType: 'arraybuffer' }));
-          fs.writeFileSync(pdfPath, data);
-          console.log(`PDF downloaded for search value ${searchValue}:`, pdfPath);
-          return pdfPath;
-        } else {
-          console.error(`Failed to find download URL for search value ${searchValue}.`);
-          throw new Error('Failed to find download URL');
-        }
       } catch (error) {
         console.error(`Error scraping UF ${searchValue}:`, error);
-        throw error; // Lanza el error para que Puppeteer Cluster lo maneje y reintente si es necesario
+        this.ufWithoutDebt.push(searchValue); // Guardar el searchValue en ufWithoutDebt si ocurre un error
+        throw error;
       }
     });
   }
 
+  // Navega a la página de gestión de deuda
+  private async navigateToPage(page: puppeteer.Page) {
+    await page.goto('https://www.aguascordobesas.com.ar/espacioClientes/seccion/gestionDeuda', { waitUntil: 'networkidle2' });
+    await page.waitForSelector('#searchUf', { timeout: 10000 });
+  }
+
+  // Realiza la búsqueda del UF
+  private async searchForUF(page: puppeteer.Page, searchValue: string) {
+    await page.type('#searchUf', searchValue);
+    await page.click('#btn-searchUf');
+  }
+
+  // Verifica si el cliente tiene deuda
+  private async checkForDebt(page: puppeteer.Page, searchValue: string): Promise<boolean> {
+    const btnSelector = '#btn-pagoDeudaEf';
+    const btnVisible = await page.waitForSelector(btnSelector, { visible: true }).catch(() => false);
+
+    if (!btnVisible) {
+      console.log(`UF ${searchValue} sin deuda, omitiendo descarga.`);
+      this.ufWithoutDebt.push(searchValue);
+      return false;
+    }
+
+    await page.click(btnSelector);
+    await this.delay(2000);
+
+    const modalOpened = await page.waitForSelector('#selVencimiento', { visible: true, timeout: 60000 }).catch(() => false);
+    if (!modalOpened) {
+      console.log(`UF ${searchValue} sin deuda, omitiendo descarga.`);
+      this.ufWithoutDebt.push(searchValue);
+      return false;
+    }
+
+    return true;
+  }
+
+  // Selecciona el checkbox y descarga el PDF
+  private async selectCheckbox(page: puppeteer.Page) {
+
+    await page.click('#selVencimiento');
+
+    await page.evaluate(() => {
+      const selectElement = document.querySelector<HTMLSelectElement>('#selVencimiento');
+      if (selectElement && selectElement.options.length > 1) {
+        selectElement.value = selectElement.options[1].value;
+        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+
+    await page.waitForFunction(() => {
+      const button = document.querySelector<HTMLButtonElement>('#btn-generarDocRweb');
+      return button && !button.disabled && getComputedStyle(button).visibility !== 'hidden';
+    }, { timeout: 35000 });
+
+    await page.click('#btn-generarDocRweb');
+
+    this.delay(2000)
+
+    // si no deja descargar
+    const resultModalVisible = await page.waitForSelector('#resultModalPagoEf', { visible: true, timeout: 5000 }).catch(() => false);
+    if (resultModalVisible) {
+      this.addDebts(page);
+    }
+    else{
+      const downloadUrl = await page.waitForResponse(response => {
+        return response.url().includes('downloadDocDeuda') && response.status() === 200;
+      }, { timeout: 30000 });
+      return downloadUrl;
+    }
+  }
+
+
+  // Metodo auxliar en caso de que no deje descargar deudas por falta de las mismas.
+  private async addDebts(page: puppeteer.Page){
+    const resultModalVisible = await page.waitForSelector('#resultModalPagoEf', { visible: true, timeout: 10000 }).catch(() => false);
+
+    if (resultModalVisible) {
+          console.log('El modal de resultado está visible, cerrándolo...');
+
+        // Verificar si algún elemento está sobre el botón de cerrar y dar click
+        await page.evaluate(() => {
+          const closeButton = document.querySelector('.btn-close') as HTMLElement;
+          if (closeButton) {
+            const { top, left, width, height } = closeButton.getBoundingClientRect();
+            const elementAtPoint = document.elementFromPoint(left + width / 2, top + height / 2);
+            closeButton.click();  // Cerrar el modal
+          }
+        });
+
+        await this.delay(1000);
+
+        console.log('Modal cerrado, procediendo a la selección de la tabla...');
+
+         // Espera a que la tabla esté cargada
+        const tableSelector = "tbody.no-more-tables"
+
+        await this.scrollToElement(page, tableSelector);
+
+        await page.waitForSelector(tableSelector);
+
+        // Encuentra la fila que contiene "Cuota Plan Pagos" en la columna "Descripción"
+        const rowSelector = 'tbody.no-more-tables tr.no-more-tables';
+        const rows = await page.$$(rowSelector);
+
+        for (let row of rows) {
+          const description = await row.$eval('td[data-title="Descripción"]', el => el.textContent.trim());
+          
+          if (description === 'Cuota Plan Pagos') {
+            // Encuentra el input dentro de la fila y haz clic en él
+            const inputSelector = 'input[id^="itemNoVenc"]';
+            const checkboxVisible = await page.waitForSelector(inputSelector, { visible: true, timeout: 10000 }).catch(() => false);
+
+
+            if (checkboxVisible) {
+              console.log('Checkbox encontrado, intentando seleccionar...');
+              
+              // Intentar hacer clic usando evaluate si click directo falla
+              const success = await page.evaluate((inputSelector) => {
+                const checkbox = document.querySelector(inputSelector) as HTMLElement;
+                if (checkbox) {
+                  checkbox.click(); // Forzar clic desde dentro del DOM
+                  return true;
+                }
+                return false;
+              }, inputSelector);
+            
+              if (!success) {
+                console.error('No se pudo hacer clic en el checkbox');
+                throw new Error('No se pudo hacer clic en el checkbox');
+              }
+            
+              console.log('Checkbox seleccionado con éxito.');
+            } else {
+              console.error('El checkbox no está visible o no se encontró.');
+              throw new Error('El checkbox no está visible o no se encontró');
+            }
+            break;
+          }
+              
+        }
+        
+        this.selectCheckbox(page);
+      }
+  }
+
+
+  // Desplaza la página hasta el elemento especificado
+  private async scrollToElement(page: puppeteer.Page, selector: string) {
+    await page.evaluate((selector) => {
+      const element = document.querySelector(selector) as HTMLElement;
+      element?.scrollIntoView({ block: 'center', inline: 'center' });
+    }, selector);
+  }
+
+  // Descarga el PDF asociado
+  private async downloadPDF(page: puppeteer.Page, searchValue: string, downloadsPath: string, downloadUrl: puppeteer.HTTPResponse ) {
+
+    if (downloadUrl) {
+      const pdfUrl = downloadUrl.url();
+      const pdfPath = path.join(downloadsPath, `${searchValue}.pdf`);
+      const { data } = await lastValueFrom(this.httpService.get(pdfUrl, { responseType: 'arraybuffer' }));
+      fs.writeFileSync(pdfPath, data);
+      console.log(`PDF descargado para UF ${searchValue}:`, pdfPath);
+      return pdfPath;
+    } else {
+      throw new Error('No se encontró la URL de descarga');
+    }
+  }
+
+  // Método auxiliar para retrasos
   private delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // Crea el directorio para las descargas
   private async createDownloadsDir(): Promise<string> {
     const downloadsPath = path.join(__dirname, '..', 'downloads');
     if (!fs.existsSync(downloadsPath)) {
@@ -117,21 +240,23 @@ export class ScrapingService implements OnModuleDestroy {
     return downloadsPath;
   }
 
+  // Método público para iniciar el scraping
   async scrape(searchValue: string): Promise<string | null> {
     try {
       return await this.cluster.execute({ searchValue });
     } catch (error) {
-      console.error('Scraping error:', error);
+      console.error('Error durante el scraping:', error);
       throw error;
     }
   }
 
+  // Obtiene las UFs sin deuda
   async getUFsWithoutDebt(): Promise<string[]> {
-    return this.ufWithoutDebt; // Retorna el array con los UFs sin deuda
+    return this.ufWithoutDebt;
   }
 
+  // Cierra el clúster al destruir el módulo
   async onModuleDestroy() {
-    // Cierra el clúster cuando se destruye el módulo
     await this.cluster.idle();
     await this.cluster.close();
   }
