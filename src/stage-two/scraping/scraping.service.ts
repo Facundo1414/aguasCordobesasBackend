@@ -28,7 +28,7 @@ export class ScrapingService implements OnModuleDestroy {
       retryLimit: 3, // Reintentar hasta 3 veces si un trabajo falla
       puppeteerOptions: {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless: false,
+        headless: true,
       },
     });
 
