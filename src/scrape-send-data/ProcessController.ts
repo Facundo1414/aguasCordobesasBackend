@@ -1,14 +1,14 @@
 import { Controller, Post, Param, Get, Logger, Res } from '@nestjs/common';
 import { Response } from 'express'; // Asegúrate de importar Response desde express
 import * as path from 'path';
-import { FileStorageService } from 'src/file-upload/DB/FileStorageService';
+import { FileStorageService } from 'src/DB/FileStorageService';
 import { WhatsAppService } from 'src/whatsapp-service/WhatsappService';
 import { ScrapingService } from './scraping/scraping.service';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { readExcelFile, writeExcelFile, emptyDownloadsFolder, writeExcelFileForDownload } from '../../utils/ExcelTools';
+import { readExcelFile, writeExcelFile, emptyDownloadsFolder, writeExcelFileForDownload } from '../files/utils/ExcelTools';
 import * as fs from 'fs';
-import { ProcessGateway } from './process.gateway';
+import { ProcessGateway } from './utils/process.gateway';
 
 @Controller('process')
 export class ProcessController {

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { FileStorageService } from './FileStorageService';
 import * as fs from 'fs/promises'; // Uso de Promises para operaciones asincrónicas
 import * as path from 'path';
 import { Cron } from '@nestjs/schedule';
+import { FileStorageService } from '../FileStorageService';
 
 @Injectable()
 export class CleanupService {

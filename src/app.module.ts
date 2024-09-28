@@ -1,31 +1,30 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ScrapingModule } from './stage-two/scraping/scraping.module';
-import { HealthController } from './health/health.controller';
-import { FileUploadController } from './file-upload/FileUploadController';
-import { FileUploadService } from './file-upload/FileUploadService';
+import { ScrapingModule } from './scrape-send-data/scraping/scraping.module';
+import { FileUploadService } from './files/FileUploadService';
 import { MulterModule } from '@nestjs/platform-express';
 import * as multer from 'multer';
-import { FilterNumService } from './filter-service/FilterNumService';
-import { FilterPlanService } from './filter-service/FilterPlanService';
-import { FilterFileService } from './filter-service/FilterFileService';
 import { WhatsAppService } from './whatsapp-service/WhatsappService';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FileService } from './file-upload/DB/FileService';
-import { File } from './file-upload/DB/File.entity';
-import { FileStorageService } from './file-upload/DB/FileStorageService';
-import { CleanupService } from './file-upload/DB/CleanupService';
+import { FileService } from './DB/FileService';
+import { File } from './DB/File.entity';
+import { FileStorageService } from './DB/FileStorageService';
 import { BullModule } from '@nestjs/bull';
-import { ProcessController } from './stage-two/ProcessController';
-import { ScrapingProcessor } from './stage-two/ScrapingProcessor';
-import { QueuesModule } from './stage-two/scraping/queues.module';
-import { ScrapingController } from './stage-two/scraping/scraping.controller';
-import { ScrapingService } from './stage-two/scraping/scraping.service';
-import { WhatsAppProcessor } from './stage-two/WhatsAppProcessor';
+import { ProcessController } from './scrape-send-data/ProcessController';
+import { QueuesModule } from './scrape-send-data/scraping/utils/queues.module';
+import { ScrapingController } from './scrape-send-data/scraping/scraping.controller';
+import { ScrapingService } from './scrape-send-data/scraping/scraping.service';
+import { WhatsAppProcessor } from './scrape-send-data/WhatsAppProcessor';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ProcessGateway } from './stage-two/process.gateway';
+import { ProcessGateway } from './scrape-send-data/utils/process.gateway';
+import { FileUploadController } from './files/FileUploadController';
+import { FilterNumService } from './files/filter-file-service/FilterNumService';
+import { FilterPlanService } from './files/filter-file-service/FilterPlanService';
+import { FilterFileService } from './files/filter-file-service/FilterFileService';
+import { CleanupService } from './DB/utils/CleanupService';
+import { ScrapingProcessor } from './scrape-send-data/ScrapingProcessor';
 
 
 @Module({
@@ -79,7 +78,6 @@ import { ProcessGateway } from './stage-two/process.gateway';
 
   controllers: [
     AppController, 
-    HealthController,
     FileUploadController,
     ProcessController,
     ScrapingController

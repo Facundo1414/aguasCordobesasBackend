@@ -23,7 +23,7 @@ export class ScrapingService implements OnModuleDestroy {
   private async initCluster() {
     this.cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 5, // Define cuántas tareas quieres ejecutar en paralelo
+      maxConcurrency: 10, // Define cuántas tareas quieres ejecutar en paralelo
       timeout: 200000, // Aumentar el timeout a 200 segundos
       retryLimit: 3, // Reintentar hasta 3 veces si un trabajo falla
       puppeteerOptions: {

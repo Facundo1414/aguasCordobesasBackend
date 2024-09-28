@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { WhatsAppService } from 'src/whatsapp-service/WhatsappService';
 import * as XLSX from 'xlsx';
 import * as path from 'path';
-import { FileStorageService } from 'src/file-upload/DB/FileStorageService';
+import { FileStorageService } from 'src/DB/FileStorageService';
 import * as fs from 'fs';
 
 @Injectable()

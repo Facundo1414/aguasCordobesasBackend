@@ -1,6 +1,6 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Job } from 'bull';
-import { ScrapingService } from './scraping/scraping.service';
+import { ScrapingService } from '../scrape-send-data/scraping/scraping.service';
 
 @Processor('scraping')
 export class ScrapingProcessor {

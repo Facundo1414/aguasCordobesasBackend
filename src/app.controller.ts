@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpStatus, Param, Post, Query, Res } from '@nes
 import { AppService } from './app.service';
 import { WhatsAppService } from './whatsapp-service/WhatsappService';
 import { Response } from 'express';
-import { FileStorageService } from './file-upload/DB/FileStorageService';
+import { FileStorageService } from './DB/FileStorageService';
 @Controller('api')
 export class AppController {
   constructor(private readonly appService: AppService,
@@ -29,7 +29,7 @@ export class AppController {
       if (isLoggedIn) {
         return res.status(HttpStatus.OK).json({ isLoggedIn: true });
       } else {
-        return res.status(HttpStatus.NOT_FOUND).json({ isLoggedIn: false });
+        return res.status(HttpStatus.OK).json({ isLoggedIn: false });
       }
       } catch (error) {
         console.error('Error checking if user is logged in:', error);
