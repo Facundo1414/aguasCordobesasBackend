@@ -9,6 +9,6 @@ export class WhatsAppProcessor {
   @Process({ concurrency: 5 })  // Configuración de la concurrencia
   async handleSendPDF(job: Job): Promise<void> {
     const { clientId, filePath, clientName } = job.data;
-    await this.whatsAppService.sendPDF(clientId, filePath, clientName);
+    await this.whatsAppService.sendPDF(clientId, filePath, clientName, "");
   }
 }

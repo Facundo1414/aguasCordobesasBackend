@@ -1,4 +1,4 @@
-import { Controller, Post, Param, Get, Logger, Res } from '@nestjs/common';
+import { Controller, Post, Param, Get, Logger, Res, Body } from '@nestjs/common';
 import { Response } from 'express'; // Asegúrate de importar Response desde express
 import * as path from 'path';
 import { FileStorageService } from 'src/DB/FileStorageService';
@@ -23,25 +23,30 @@ export class ProcessController {
     @InjectQueue('whatsapp') private readonly whatsappQueue: Queue
   ) {}
 
-  @Post('process-file/:fileName')
-  async processFile(@Param('fileName') fileName: string, @Res() res: Response): Promise<void> {
+  @Post('process-file')
+  async processFile(
+    @Body() body: { filename: string; message: string; expiration: number },
+    @Res() res: Response
+  ): Promise<void> {
+    const { filename, message, expiration } = body;
+
     try {
-      const filePath = await this.fileStorageService.getFilePath(fileName);
+      const filePath = await this.fileStorageService.getFilePath(filename);
       const downloadsPath = path.join(__dirname, '..', 'stage-two/downloads');
-      const tempFilePath = path.join(__dirname, '..', 'temp', fileName); // Ruta del archivo temporal
+      const tempFilePath = path.join(__dirname, '..', 'temp', filename); // Ruta del archivo temporal
       const jsonData = readExcelFile(filePath);
 
       const scrapingPromises = jsonData.slice(1).map(async (row) => {
         const clientUF = row[0]?.toString().trim();
         const clientPhoneNumber = row[1]?.toString().trim() || row[2]?.toString().trim();
-        const clientName = row[6]?.toString().trim();
+        const clientName = row[13]?.toString().trim();
 
         if (clientUF && clientPhoneNumber && clientName) {
           try {
-            const pdfPath = await this.scrapingService.scrape(clientUF);
+            const pdfPath = await this.scrapingService.scrape(clientUF, expiration);
 
             if (pdfPath) {
-              await this.whatsAppService.sendPDF(clientPhoneNumber, clientName, pdfPath);
+              await this.whatsAppService.sendPDF(clientPhoneNumber, clientName, pdfPath, message);
 
               this.processGateway.sendLogMessage(`Mensaje enviado a ${clientName} (${clientPhoneNumber})`);
               // Eliminar el archivo PDF temporal después de enviarlo

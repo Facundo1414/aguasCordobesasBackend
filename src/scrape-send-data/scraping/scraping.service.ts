@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { Cluster } from 'puppeteer-cluster';
+import { log } from 'console';
 
 @Injectable()
 export class ScrapingService implements OnModuleDestroy {
@@ -23,7 +24,7 @@ export class ScrapingService implements OnModuleDestroy {
   private async initCluster() {
     this.cluster = await Cluster.launch({
       concurrency: Cluster.CONCURRENCY_CONTEXT,
-      maxConcurrency: 10, // Define cuántas tareas quieres ejecutar en paralelo
+      maxConcurrency: 5, // Define cuántas tareas quieres ejecutar en paralelo
       timeout: 200000, // Aumentar el timeout a 200 segundos
       retryLimit: 3, // Reintentar hasta 3 veces si un trabajo falla
       puppeteerOptions: {
@@ -33,7 +34,7 @@ export class ScrapingService implements OnModuleDestroy {
     });
 
     // Define la tarea que ejecutará cada worker en paralelo
-    await this.cluster.task(async ({ page, data: { searchValue } }) => {
+    await this.cluster.task(async ({ page, data: { searchValue,expiration } }) => {
       const downloadsPath = await this.createDownloadsDir();
       console.log(`Processing search value: ${searchValue}`);
 
@@ -44,7 +45,7 @@ export class ScrapingService implements OnModuleDestroy {
         const hasDebt = await this.checkForDebt(page, searchValue);
         if (!hasDebt) return;
 
-        const downloadUrl = await this.selectCheckbox(page);
+        const downloadUrl = await this.selectCheckbox(page , expiration);
         const pdfPath = await this.downloadPDF(page, searchValue, downloadsPath, downloadUrl);
 
         return pdfPath;
@@ -94,17 +95,23 @@ export class ScrapingService implements OnModuleDestroy {
   }
 
   // Selecciona el checkbox y descarga el PDF
-  private async selectCheckbox(page: puppeteer.Page) {
+  private async selectCheckbox(page: puppeteer.Page, expiration: number) {
 
     await page.click('#selVencimiento');
+    
 
-    await page.evaluate(() => {
+    await page.evaluate((expiration) => {
       const selectElement = document.querySelector<HTMLSelectElement>('#selVencimiento');
       if (selectElement && selectElement.options.length > 1) {
-        selectElement.value = selectElement.options[1].value;
+        if (expiration === 0) {
+          selectElement.value = selectElement.options[0].value;
+        }
+        else{
+          selectElement.value = selectElement.options[1].value;
+        }
         selectElement.dispatchEvent(new Event('change', { bubbles: true }));
       }
-    });
+    },expiration);
 
     await page.waitForFunction(() => {
       const button = document.querySelector<HTMLButtonElement>('#btn-generarDocRweb');
@@ -118,7 +125,7 @@ export class ScrapingService implements OnModuleDestroy {
     // si no deja descargar
     const resultModalVisible = await page.waitForSelector('#resultModalPagoEf', { visible: true, timeout: 5000 }).catch(() => false);
     if (resultModalVisible) {
-      this.addDebts(page);
+      this.addDebts(page, expiration);
     }
     else{
       const downloadUrl = await page.waitForResponse(response => {
@@ -130,7 +137,7 @@ export class ScrapingService implements OnModuleDestroy {
 
 
   // Metodo auxliar en caso de que no deje descargar deudas por falta de las mismas.
-  private async addDebts(page: puppeteer.Page){
+  private async addDebts(page: puppeteer.Page , expiration: number){
     const resultModalVisible = await page.waitForSelector('#resultModalPagoEf', { visible: true, timeout: 10000 }).catch(() => false);
 
     if (resultModalVisible) {
@@ -198,7 +205,7 @@ export class ScrapingService implements OnModuleDestroy {
               
         }
         
-        this.selectCheckbox(page);
+        this.selectCheckbox(page, expiration);
       }
   }
 
@@ -241,9 +248,9 @@ export class ScrapingService implements OnModuleDestroy {
   }
 
   // Método público para iniciar el scraping
-  async scrape(searchValue: string): Promise<string | null> {
+  async scrape(searchValue: string, expiration: number): Promise<string | null> {
     try {
-      return await this.cluster.execute({ searchValue });
+      return await this.cluster.execute({ searchValue,expiration });
     } catch (error) {
       console.error('Error durante el scraping:', error);
       throw error;

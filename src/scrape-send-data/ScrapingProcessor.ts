@@ -9,6 +9,6 @@ export class ScrapingProcessor {
   @Process({ concurrency: 5 })  // Configuración de la concurrencia
   async handleScraping(job: Job) {
     const { searchValue } = job.data;
-    await this.scrapingService.scrape(searchValue);
+    await this.scrapingService.scrape(searchValue, 1);
   }
 }

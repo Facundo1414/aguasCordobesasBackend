@@ -21,7 +21,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ProcessGateway } from './scrape-send-data/utils/process.gateway';
 import { FileUploadController } from './files/FileUploadController';
 import { FilterNumService } from './files/filter-file-service/FilterNumService';
-import { FilterPlanService } from './files/filter-file-service/FilterPlanService';
 import { FilterFileService } from './files/filter-file-service/FilterFileService';
 import { CleanupService } from './DB/utils/CleanupService';
 import { ScrapingProcessor } from './scrape-send-data/ScrapingProcessor';
@@ -88,7 +87,6 @@ import { ScrapingProcessor } from './scrape-send-data/ScrapingProcessor';
     AppService,
     FileUploadService,
     FilterNumService,
-    FilterPlanService, 
     FilterFileService, 
     WhatsAppService, 
     FileService, 
