@@ -1,27 +1,27 @@
-import { Injectable } from '@nestjs/common';
-import { UsersService } from '../users.service';
-import { JwtService } from '@nestjs/jwt';
+// auth.service.ts
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService
-  ) {}
+  private users = [
+    { username: 'admin', password: 'admin123', id: 1 },  
+  ];
 
-  async validateUser(username: string, password: string): Promise<any> {
-    const user = await this.usersService.findOne(username);
-    if (user && (await this.usersService.validatePassword(password, user.password))) {
-      const { password, ...result } = user;
-      return result;
+  login(username: string, password: string, session: any) {
+    const user = this.users.find(
+      (u) => u.username === username && u.password === password,
+    );
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
     }
-    return null;
+
+    session.userId = user.id; // Guarda el userId en la sesión
+    session.token = uuidv4(); // Genera un token simple para la sesión (opcional)
+    return { message: 'Login successful', userId: user.id };
   }
 
-  async login(user: any) {
-    const payload = { username: user.username, sub: user.id };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+  isAuthenticated(session: any): boolean {
+    return !!session.userId; // Verifica si el usuario está autenticado por la sesión
   }
 }

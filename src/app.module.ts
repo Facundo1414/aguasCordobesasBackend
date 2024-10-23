@@ -11,7 +11,6 @@ import { FileService } from './DB/FileService';
 import { File } from './DB/File.entity';
 import { FileStorageService } from './DB/FileStorageService';
 import { BullModule } from '@nestjs/bull';
-import { ProcessController } from './scrape-send-data/ProcessController';
 import { QueuesModule } from './scrape-send-data/scraping/utils/queues.module';
 import { ScrapingController } from './scrape-send-data/scraping/scraping.controller';
 import { ScrapingService } from './scrape-send-data/scraping/scraping.service';
@@ -24,10 +23,29 @@ import { FilterNumService } from './files/filter-file-service/FilterNumService';
 import { FilterFileService } from './files/filter-file-service/FilterFileService';
 import { CleanupService } from './DB/utils/CleanupService';
 import { ScrapingProcessor } from './scrape-send-data/ScrapingProcessor';
+import { ProcessController } from './scrape-send-data/process/process.controller';
+import { AuthController } from './users/auth/auth.controller';
+import { AuthService } from './users/auth/auth.service';
+import { UserService } from './users/users.service';
+import { AuthModule } from './users/auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { FileProcessingService } from './scrape-send-data/process/file-processing.service';
+import { ErrorHandlerService } from './scrape-send-data/process/error-handler.service';
+import { ConfigModule } from '@nestjs/config';
+import { User } from './users/user.entity';
 
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true, // Hace que las variables de entorno estén disponibles en toda la aplicación
+      load: [
+        () => ({
+          JWT_SECRET: process.env.JWT_SECRET || 'QkrV12gpqFjtW-NeLWuSdEgB4lvoGExnmN8koA-z2vGuUH0UwfhLBJwz2cmPw61M', // Valor por defecto
+        }),
+      ],
+    }),
+
     ScrapingModule,
 
     QueuesModule,
@@ -43,7 +61,7 @@ import { ScrapingProcessor } from './scrape-send-data/ScrapingProcessor';
       username: 'postgres',
       password: 'root',
       database: 'aquaDB',
-      entities: [File],
+      entities: [File, User],
       synchronize: true, // TODO Asegúrate de ponerlo en `false` en producción
     }),
     TypeOrmModule.forFeature([File]),
@@ -71,7 +89,12 @@ import { ScrapingProcessor } from './scrape-send-data/ScrapingProcessor';
 
     HttpModule,
 
-    ScheduleModule.forRoot()
+    ScheduleModule.forRoot(),
+
+    AuthModule,
+
+    UsersModule,
+
   ], 
 
 
@@ -79,7 +102,8 @@ import { ScrapingProcessor } from './scrape-send-data/ScrapingProcessor';
     AppController, 
     FileUploadController,
     ProcessController,
-    ScrapingController
+    ScrapingController,
+    AuthController,
   ],
 
 
@@ -95,13 +119,18 @@ import { ScrapingProcessor } from './scrape-send-data/ScrapingProcessor';
     ScrapingProcessor,
     WhatsAppProcessor,
     ScrapingService,
-    ProcessGateway
+    ProcessGateway,
+    AuthService,
+    FileProcessingService,
+    ErrorHandlerService,
+    UserService,
   ],
 
 
   exports: [
     FilterNumService,
-    FileStorageService
+    FileStorageService,
+    UserService,
   ],
   
 })

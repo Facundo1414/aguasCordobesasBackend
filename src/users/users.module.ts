@@ -1,11 +1,12 @@
-// users.module.ts
 import { Module } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { UsersController } from './users.controller';
+import { UserService } from './users.service';
+import { AuthController } from './auth/auth.controller';
+import { User } from './user.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  providers: [UsersService],
-  controllers: [UsersController],
-  exports: [UsersService],  // Exportamos UsersService para usarlo en otros módulos
+  imports: [TypeOrmModule.forFeature([User])],  // Elimina la coma inicial
+  providers: [UserService],
+  exports: [UserService],  // Exportamos UserService para usarlo en otros módulos
 })
 export class UsersModule {}
