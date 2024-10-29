@@ -31,21 +31,11 @@ import { AuthModule } from './users/auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { FileProcessingService } from './scrape-send-data/process/file-processing.service';
 import { ErrorHandlerService } from './scrape-send-data/process/error-handler.service';
-import { ConfigModule } from '@nestjs/config';
 import { User } from './users/user.entity';
 
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true, // Hace que las variables de entorno estén disponibles en toda la aplicación
-      load: [
-        () => ({
-          JWT_SECRET: process.env.JWT_SECRET || 'QkrV12gpqFjtW-NeLWuSdEgB4lvoGExnmN8koA-z2vGuUH0UwfhLBJwz2cmPw61M', // Valor por defecto
-        }),
-      ],
-    }),
-
     ScrapingModule,
 
     QueuesModule,
