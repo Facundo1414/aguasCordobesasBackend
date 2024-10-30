@@ -7,6 +7,7 @@ import {
   Session,
   Headers,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
@@ -15,6 +16,7 @@ import * as fs from 'fs';
 import { join } from 'path';
 import { FileUploadService } from './FileUploadService';
 import { AuthGuard } from 'src/users/auth/auth.guard';
+import { CustomRequest } from 'src/interfaces/custom-request.interface';
 
 const UPLOADS_DIR = join(__dirname, '..', 'uploads');
 
@@ -58,15 +60,11 @@ export class FileUploadController {
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Headers('Authorization') token: string, // Recibe el token del encabezado
-    @Session() session: Record<string, any>, // Acceso a la sesión
+    @Req() request: CustomRequest // Accede al objeto request
   ) {
     console.log('File received in controller:', file);
     if (!file) {
       throw new BadRequestException('Invalid file or file buffer');
-    }
-
-    if (!session.userId) {
-      throw new BadRequestException('User not authenticated');
     }
 
     try {

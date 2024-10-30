@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -31,5 +31,22 @@ export class UserService {
 
   async removeRefreshToken(userId: number): Promise<void> {
     await this.usersRepository.update(userId, { refreshToken: null }); // O elimina la relación si usas una tabla separada
+  }
+
+
+  async register(username: string, password: string): Promise<User> {
+    const existingUser = await this.findUserByUsername(username);
+    if (existingUser) {
+      throw new ConflictException('Username already exists');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10); // Hash de la contraseña
+
+    const newUser = this.usersRepository.create({
+      username,
+      password: hashedPassword,
+    });
+
+    return this.usersRepository.save(newUser);
   }
 }

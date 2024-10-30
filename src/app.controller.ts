@@ -58,10 +58,6 @@ export class AppController {
     @Session() session: Record<string, any>,
     @Res() res: Response
   ) {
-    const userId = session.userId; // Obtén el userId de la sesión
-    if (!userId) {
-      return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'User not authenticated' });
-    }
 
     try {
       const filePath = await this.fileStorageService.getFilePath(fileName);

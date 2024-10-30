@@ -2,10 +2,14 @@ import { Controller, Post, Body, HttpStatus, Res, UseGuards, Req } from '@nestjs
 import { AuthService } from './auth.service';
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
+import { UserService } from '../users.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService, 
+  ) {}
 
   @Post('login')
   async login(@Body() body: any, @Res() res: Response) {
@@ -32,5 +36,16 @@ export class AuthController {
     // Si es válido, genera un nuevo access token y retorna ambos
     const newAccessToken = await this.authService.generateNewAccessToken(body.refreshToken);
     return { accessToken: newAccessToken };
+  }
+
+  @Post('register')
+  async register(@Body() body: { username: string; password: string }, @Res() res: Response) {
+    const { username, password } = body;
+    try {
+      const newUser = await this.userService.register(username, password);
+      return res.status(HttpStatus.CREATED).json(newUser);
+    } catch (error) {
+      return res.status(HttpStatus.CONFLICT).json({ message: error.message });
+    }
   }
 }
