@@ -4,7 +4,6 @@ import { AppService } from './app.service';
 import { ScrapingModule } from './scrape-send-data/scraping/scraping.module';
 import { FileUploadService } from './files/FileUploadService';
 import { MulterModule } from '@nestjs/platform-express';
-import * as multer from 'multer';
 import { WhatsAppService } from './whatsapp-service/WhatsappService';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FileService } from './DB/FileService';
@@ -32,6 +31,8 @@ import { UsersModule } from './users/users.module';
 import { FileProcessingService } from './scrape-send-data/process/file-processing.service';
 import { ErrorHandlerService } from './scrape-send-data/process/error-handler.service';
 import { User } from './users/user.entity';
+import { JwtStrategy } from './users/jwt/jwt.strategy';
+import { RefreshToken } from './users/jwt/refresh-token.entity';
 
 
 @Module({
@@ -51,10 +52,10 @@ import { User } from './users/user.entity';
       username: 'postgres',
       password: 'root',
       database: 'aquaDB',
-      entities: [File, User],
+      entities: [File, User, RefreshToken],
       synchronize: true, // TODO Asegúrate de ponerlo en `false` en producción
     }),
-    TypeOrmModule.forFeature([File]),
+    TypeOrmModule.forFeature([File, User, RefreshToken]),
 
     BullModule.forRoot({
       redis: {
@@ -114,6 +115,7 @@ import { User } from './users/user.entity';
     FileProcessingService,
     ErrorHandlerService,
     UserService,
+    JwtStrategy 
   ],
 
 

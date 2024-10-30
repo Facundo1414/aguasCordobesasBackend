@@ -1,4 +1,4 @@
-import { Controller, Post, Res, Body, Session, Get } from '@nestjs/common';
+import { Controller, Post, Res, Body, Session, Get, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { FileProcessingService } from './file-processing.service';
 import { ProcessFileDto } from './dto/process-file.dto';
@@ -6,6 +6,7 @@ import { ErrorHandlerService } from './error-handler.service';
 import { Messages } from './constants/messages';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { AuthGuard } from 'src/users/auth/auth.guard';
 
 @Controller('process')
 export class ProcessController {
@@ -17,6 +18,7 @@ export class ProcessController {
   ) {}
 
   @Post('process-file')
+  @UseGuards(AuthGuard) // Aplica el guard
   async processFile(
     @Session() session: Record<string, any>, // Accede a la sesión
     @Body() body: ProcessFileDto,
@@ -49,6 +51,7 @@ export class ProcessController {
   }
 
   @Get('status')
+  @UseGuards(AuthGuard) // Aplica el guard
   async getStatus() {
     // Recuperar el conteo de trabajos de las colas de scraping y WhatsApp
     const scrapingJobs = await this.scrapingQueue.getJobCounts();

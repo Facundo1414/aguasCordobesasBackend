@@ -1,8 +1,9 @@
-import { Body, Controller, Get, HttpStatus, Param, Post, Query, Res, Session } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Param, Post, Query, Res, Session, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { WhatsAppService } from './whatsapp-service/WhatsappService';
 import { Response } from 'express';
 import { FileStorageService } from './DB/FileStorageService';
+import { AuthGuard } from './users/auth/auth.guard';
 
 @Controller('api')
 export class AppController {
@@ -10,6 +11,7 @@ export class AppController {
               private readonly whatsappService: WhatsAppService,
               private readonly fileStorageService: FileStorageService) {}
 
+  @UseGuards(AuthGuard) // Aplica el guard
   @Get('qrcode')
   async getQRCode(@Session() session: Record<string, any>, @Res() res: Response) {
     const userId = session.userId; // Obtén el userId de la sesión
@@ -26,6 +28,7 @@ export class AppController {
     }
   }
 
+  @UseGuards(AuthGuard) // Aplica el guard
   @Get("isLoggedIn")
   async getIsLoggedIn(@Session() session: Record<string, any>, @Res() res: Response) {
     const userId = session.userId; // Obtén el userId de la sesión
@@ -47,6 +50,8 @@ export class AppController {
     }
   }
 
+
+  @UseGuards(AuthGuard) // Aplica el guard 
   @Get('getFileByName/:fileName')
   async getFileByName(
     @Param('fileName') fileName: string, 

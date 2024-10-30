@@ -6,6 +6,7 @@ import {
   BadRequestException,
   Session,
   Headers,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
@@ -13,6 +14,7 @@ import { diskStorage } from 'multer';
 import * as fs from 'fs';
 import { join } from 'path';
 import { FileUploadService } from './FileUploadService';
+import { AuthGuard } from 'src/users/auth/auth.guard';
 
 const UPLOADS_DIR = join(__dirname, '..', 'uploads');
 
@@ -28,6 +30,7 @@ export class FileUploadController {
   ) {}
 
   @Post('excel')
+  @UseGuards(AuthGuard) // Aplica el guard
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
