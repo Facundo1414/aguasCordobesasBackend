@@ -1,12 +1,12 @@
 import { Controller, Post, Res, Body, Session, Get, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
-import { FileProcessingService } from './file-processing.service';
-import { ProcessFileDto } from './dto/process-file.dto';
-import { ErrorHandlerService } from './error-handler.service';
-import { Messages } from './constants/messages';
+import { FileProcessingService } from '../services/file-processing.service';
+import { ProcessFileDto } from '../models/dto/process-file.dto';
+import { ErrorHandlerService } from '../services/error-handler.service';
+import { Messages } from '../models/constants/messages';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { AuthGuard } from 'src/users/auth/auth.guard';
+import { AuthGuard } from 'src/users/services/auth.guard';
 
 @Controller('process')
 export class ProcessController {
@@ -24,11 +24,7 @@ export class ProcessController {
     @Body() body: ProcessFileDto,
     @Res() res: Response
   ): Promise<void> {
-    const userId = session.userId; // Obtén el userId de la sesión
-    if (!userId) {
-      res.status(401).json({ message: 'User not authenticated' });
-      return; // Asegúrate de retornar después de enviar la respuesta
-    }
+    const userId = session.userId; 
 
     try {
       const excelBuffer = await this.fileProcessingService.processFile(body.filename, body.message, body.expiration, userId);

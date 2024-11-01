@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as path from 'path';
 import { readExcelFile, writeExcelFile } from '../../files/utils/ExcelTools';
-import { FileStorageService } from 'src/DB/FileStorageService';
+import { FileStorageService } from 'src/files/services/FileStorageService';
 import { FilterNumService } from './FilterNumService';
 
 @Injectable()

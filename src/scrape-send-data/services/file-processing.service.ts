@@ -1,11 +1,11 @@
 // file-processing.service.ts
 import { Injectable } from '@nestjs/common';
-import { FileStorageService } from 'src/DB/FileStorageService';
-import { WhatsAppService } from 'src/whatsapp-service/WhatsappService';
+import { FileStorageService } from 'src/files/services/FileStorageService';
+import { WhatsAppService } from 'src/whatsapp-service/services/WhatsappService';
 import { readExcelFile, writeExcelFileForDownload, emptyDownloadsFolder } from '../../files/utils/ExcelTools';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ScrapingService } from '../scraping/scraping.service';
+import { ScrapingService } from './scraping.service';
 import { ProcessGateway } from '../utils/process.gateway';
 
 @Injectable()

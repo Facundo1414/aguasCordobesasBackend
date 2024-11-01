@@ -14,8 +14,8 @@ import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import * as fs from 'fs';
 import { join } from 'path';
-import { FileUploadService } from './FileUploadService';
-import { AuthGuard } from 'src/users/auth/auth.guard';
+import { FileUploadService } from '../services/FileUploadService';
+import { AuthGuard } from 'src/users/services/auth.guard';
 import { CustomRequest } from 'src/interfaces/custom-request.interface';
 
 const UPLOADS_DIR = join(__dirname, '..', 'uploads');

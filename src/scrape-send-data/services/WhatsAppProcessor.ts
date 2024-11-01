@@ -1,6 +1,6 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Job } from 'bull';
-import { WhatsAppService } from 'src/whatsapp-service/WhatsappService';
+import { WhatsAppService } from 'src/whatsapp-service/services/WhatsappService';
 
 @Processor('whatsapp')
 export class WhatsAppProcessor {

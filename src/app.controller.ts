@@ -1,9 +1,9 @@
 import { Body, Controller, Get, HttpStatus, Param, Post, Query, Res, Session, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
-import { WhatsAppService } from './whatsapp-service/WhatsappService';
+import { WhatsAppService } from './whatsapp-service/services/WhatsappService';
 import { Response } from 'express';
-import { FileStorageService } from './DB/FileStorageService';
-import { AuthGuard } from './users/auth/auth.guard';
+import { FileStorageService } from './files/services/FileStorageService';
+import { AuthGuard } from './users/services/auth.guard';
 
 @Controller('api')
 export class AppController {

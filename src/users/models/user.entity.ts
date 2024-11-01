@@ -1,6 +1,6 @@
 // user.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
-import { RefreshToken } from './jwt/refresh-token.entity';
+import { RefreshToken } from '../jwt/refresh-token.entity';
 
 @Entity('users') 
 export class User {

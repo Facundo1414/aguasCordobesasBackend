@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as xlsx from 'xlsx';
 import { join } from 'path';
-import { FilterFileService } from './filter-file-service/FilterFileService';
+import { FilterFileService } from './FilterFileService';
 
 @Injectable()
 export class FileUploadService {

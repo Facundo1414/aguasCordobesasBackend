@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios'; // Import HttpModule
-import { ScrapingService } from './scraping.service';
-import { ScrapingController } from './scraping.controller';
+import { ScrapingService } from '../services/scraping.service';
+import { ScrapingController } from '../controllers/scraping.controller';
 import { BullModule } from '@nestjs/bull';
-import { QueuesModule } from './utils/queues.module';
-import { FileStorageService } from 'src/DB/FileStorageService';
+import { QueuesModule } from '../utils/queues.module';
+import { FileStorageService } from 'src/files/services/FileStorageService';
 
 @Module({
   imports: [
