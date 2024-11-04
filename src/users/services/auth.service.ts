@@ -21,13 +21,31 @@ export class AuthService {
 
   async login(username: string, password: string): Promise<{ accessToken: string, refreshToken: string }> {
     const user = await this.userService.findUserByUsername(username);
-
-    if (!user || !(await this.userService.validatePassword(password, user.password))) {
+    if (!user) {
+      console.log('Usuario no encontrado');
       throw new UnauthorizedException('Invalid credentials');
-    }
+  }
 
+    const isPasswordValid = await this.userService.validatePassword(password, user.password);
+    console.log('¿La contraseña es válida?', isPasswordValid); // Este log debería mostrar `true`
+
+    if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid credentials');
+    }
+    
     const payload = { username: user.username, sub: user.id };
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = "";
+    console.log("todo ok");
+
+    try {
+      const accessToken = this.jwtService.sign(payload);
+      console.log("Access token generado correctamente:", accessToken);
+    } catch (error) {
+      console.error("Error al generar access token:", error);
+      throw new UnauthorizedException('Error al generar access token');
+    }
+    
+
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' }); // Generar el refresh token
 
     // Almacenar el refresh token en la base de datos o en otro lugar seguro
@@ -59,23 +77,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Verificar si el refresh token está almacenado en la base de datos
-    const user = await this.userService.findUserByUsername(payload.username);
-    if (!user || user.refreshToken !== refreshToken) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-
+    // Verificar si el refresh token está almacenado y no ha expirado
     const storedRefreshToken = await this.refreshTokensRepository.findOne({
-      where: { token: refreshToken, user: { id: user.id } },
-  });
+      where: { token: refreshToken, user: { id: payload.sub } },
+    });
 
-  if (!storedRefreshToken || storedRefreshToken.expiresAt < new Date()) {
+    if (!storedRefreshToken || storedRefreshToken.expiresAt < new Date()) {
       throw new UnauthorizedException('Refresh token expired');
-  }
+    }
 
     const accessToken = this.jwtService.sign({ username: payload.username, sub: payload.sub });
     return { accessToken };
   }
+
 
 
   async validateUser(username: string, pass: string): Promise<any> {

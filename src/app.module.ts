@@ -111,11 +111,11 @@ import { CleanupService } from './files/services/CleanupService';
     WhatsAppProcessor,
     ScrapingService,
     ProcessGateway,
-    AuthService,
     FileProcessingService,
     ErrorHandlerService,
+    JwtStrategy, 
+    AuthService,
     UserService,
-    JwtStrategy 
   ],
 
 

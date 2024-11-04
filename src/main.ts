@@ -4,18 +4,19 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import * as session from 'express-session';
+import { getConnection } from 'typeorm';
+
+dotenv.config();
 
 async function bootstrap() {
+  
   const app = await NestFactory.create(AppModule);
-
-  dotenv.config();
-
   app.use(session({
-    secret: "QkrV12gpqFjtW-NeLWuSdEgB4lvoGExnmN8koA-z2vGuUH0UwfhLBJwz2cmPw61M", // Cambia esto a una cadena secreta más segura
+    secret: process.env.JWT_SECRET ,
     resave: false,
     saveUninitialized: false,
     cookie: { 
-      maxAge: 60000, // Tiempo de vida de la cookie (en milisegundos)
+      maxAge: 60000,
     }, 
   }));
 
@@ -29,13 +30,13 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   const config = new DocumentBuilder()
-  .setTitle('Mi API')
-  .setDescription('La documentación de la API de mi proyecto')
-  .setVersion('1.0')
-  .build();
+    .setTitle('Mi API')
+    .setDescription('La documentación de la API de mi proyecto')
+    .setVersion('1.0')
+    .build();
+  
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
-
 
   await app.listen(process.env.PORT || 3000);
 }

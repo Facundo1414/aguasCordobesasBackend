@@ -5,18 +5,25 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { RefreshTokenModule } from '../jwt/refresh-token.module';
 import { AuthService } from '../services/auth.service';
+import { TokenCleanupService } from '../services/token-cleanup.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RefreshToken } from '../jwt/refresh-token.entity';
 
 @Module({
   imports: [
-    UsersModule,
-    PassportModule,
     JwtModule.register({
-      secret: 'SECRET_KEY',
+      secret: process.env.JWT_SECRET,      
       signOptions: { expiresIn: '60m' },
     }),
-    RefreshTokenModule
+    
+    UsersModule,
+    PassportModule,
+    RefreshTokenModule,
+    TypeOrmModule.forFeature([RefreshToken])
   ],
-  providers: [AuthService],
+  providers: [AuthService, TokenCleanupService],
   exports: [AuthService, JwtModule],
 })
-export class AuthModule {}
+export class AuthModule {
+  constructor() {
+  }}

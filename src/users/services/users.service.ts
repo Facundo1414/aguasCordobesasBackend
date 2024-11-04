@@ -3,12 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../models/user.entity';
+import { RefreshToken } from '../jwt/refresh-token.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private refreshTokensRepository: Repository<RefreshToken>,
   ) {}
 
   async findUserByUsername(username: string): Promise<User | undefined> {
@@ -20,19 +23,26 @@ export class UserService {
   }
 
   async storeRefreshToken(userId: number, refreshToken: string): Promise<void> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 7); // Establecer expiración a 7 días
 
-    await this.usersRepository.update(userId, {
-        refreshToken,
-        refreshTokenExpiry: expiryDate,
+    const newRefreshToken = this.refreshTokensRepository.create({
+      token: refreshToken,
+      expiresAt: expiryDate,
+      user: user, // Asocia el token al usuario
     });
-}
 
-  async removeRefreshToken(userId: number): Promise<void> {
-    await this.usersRepository.update(userId, { refreshToken: null }); // O elimina la relación si usas una tabla separada
+    await this.refreshTokensRepository.save(newRefreshToken);
   }
 
+  async removeRefreshToken(userId: number): Promise<void> {
+    await this.refreshTokensRepository.delete({ user: { id: userId } });
+  }
 
   async register(username: string, password: string): Promise<User> {
     const existingUser = await this.findUserByUsername(username);
