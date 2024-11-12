@@ -9,12 +9,12 @@ export class FileUploadService {
 
   constructor(private readonly filterFileService: FilterFileService) {}
 
-  async handleFileUpload(file: Express.Multer.File) {
-    // Construir la ruta completa del archivo
+  async handleFileUpload(file: Express.Multer.File, userId: string) {
+    // Full path to the uploaded file
     const filePath = join(__dirname, '..', 'uploads', file.filename);
     
     if (!fs.existsSync(filePath)) {
-      throw new BadRequestException('Archivo no encontrado');
+      throw new BadRequestException('File not found');
     }
 
     try {
@@ -25,21 +25,23 @@ export class FileUploadService {
       const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (!Array.isArray(jsonData) || !Array.isArray(jsonData[0])) {
-        throw new Error('El formato del archivo no es válido');
+        throw new Error('Invalid file format');
       }
+      console.log("user id in FILE service: " + userId);
 
-      const savedFileNames = await this.filterFileService.processFile(filePath, 1);
+      // Pass filePath and userId to processFile
+      const savedFileNames = await this.filterFileService.processFile(filePath, userId);
 
-      // Eliminar el archivo después de procesarlo
+      // Delete the file after processing
       fs.unlinkSync(filePath);
 
       return {
-        message: 'Archivo subido y procesado exitosamente',
+        message: 'File successfully uploaded and processed',
         savedFileNames,
       };
     } catch (error) {
       console.error('Error processing file:', error);
-      throw new BadRequestException('Error procesando el archivo');
+      throw new BadRequestException('Error processing file');
     }
   }
 }

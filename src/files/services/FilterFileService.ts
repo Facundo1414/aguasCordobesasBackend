@@ -11,10 +11,12 @@ export class FilterFileService {
     private readonly fileStorageService: FileStorageService
   ) {}
 
-  async processFile(filePath: string, userId: number): Promise<string[]> {
+  async processFile(filePath: string, userId: string): Promise<string[]> {
     try {
       // Filtrar números y obtener los archivos generados
-      const { filteredFile, notWhatsAppFile } = await this.filterNumService.filterNumbers(filePath);
+      const { filteredFile, notWhatsAppFile } = await this.filterNumService.filterNumbers(filePath, userId);
+
+      console.log("user id in FILE filter: " + userId);
 
       // Guardar archivo de números no WhatsApp en la base de datos
       await this.fileStorageService.saveFile(
@@ -22,7 +24,7 @@ export class FilterFileService {
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         userId
       );
-      console.log(`Not WhatsApp file created at ${notWhatsAppFile}`);
+      console.log(`Not WhatsApp file created at ${notWhatsAppFile} for userId: ${userId}`);
 
       // Leer el archivo filtrado de clientes con WhatsApp
       const jsonData: any[] = readExcelFile(filteredFile);

@@ -12,10 +12,19 @@ export class UserService {
     private usersRepository: Repository<User>,
     @InjectRepository(RefreshToken)
     private refreshTokensRepository: Repository<RefreshToken>,
+    
   ) {}
 
   async findUserByUsername(username: string): Promise<User | undefined> {
     return this.usersRepository.findOne({ where: { username } });
+  }
+
+  async findUserById(id: number): Promise<User> {
+    return this.usersRepository.findOne({ where: { id } });
+  }
+
+  async saveUser(user: User): Promise<void> {
+    await this.usersRepository.save(user);
   }
 
   async validatePassword(password: string, hash: string): Promise<boolean> {

@@ -16,6 +16,8 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ nullable: true })
+  whatsappSession: string | null; // Aquí almacenamos la sesión de WhatsApp
   // @Column({ nullable: true }) // Propiedad para el refreshToken
   // refreshToken: string | null;
 

@@ -8,69 +8,65 @@ import * as path from 'path';
 export class WhatsAppService{
   private clients: Map<string, Client> = new Map(); // Mapa para manejar múltiples clientes
   private isInitialized = new Map<string, boolean>(); // Estado de inicialización por usuario
+  private qrCodes: Map<string, string> = new Map();
 
   constructor() {}
 
 
 
-  private async initializeWhatsApp(userId: string): Promise<Client> {
+  async initializeWhatsApp(userId: string): Promise<Client> {
     if (this.isInitialized.get(userId)) {
-      return this.clients.get(userId); // Devuelve el cliente ya inicializado
+      return this.clients.get(userId); // Return already initialized client
     }
-
+  
     const client = new Client({
-      authStrategy: new LocalAuth({ clientId: userId }), // Cambia el clientId para permitir múltiples instancias
+      authStrategy: new LocalAuth({ clientId: userId }), // Change clientId for multiple instances
       puppeteer: {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       },
     });
-
+  
     this.clients.set(userId, client);
     this.isInitialized.set(userId, false);
-
-    return new Promise<void>(async (resolve, reject) => {
-      client.on('qr', (qr) => {
-        console.log(`Received QR Code for user ${userId}:`, qr);
-        const qrPath = path.join(__dirname, '..', 'qr', `${userId}_qrcode.png`);
-        this.generateQRCode(qr, qrPath)
-          .then(() => {
-            console.log('QR code saved to:', qrPath);
-            resolve();
-          })
-          .catch((err) => {
-            console.error('Error saving QR code:', err);
-            reject(err);
-          });
+  
+    return new Promise<Client>(async (resolve, reject) => { // Change Promise<void> to Promise<Client>
+      client.on('qr', async (qr) => {
+        console.log(`Received QR Code for user ${userId}`);
+        this.qrCodes.set(userId, qr);
+        await this.generateQRCodeBase64(qr); // Resolve without `then` for simpler code
       });
-
+  
       client.on('ready', () => {
         console.log(`WhatsApp Web Client for user ${userId} is ready!`);
         this.isInitialized.set(userId, true);
-        resolve(); // Resuelve la promesa aquí
+        resolve(client); // Resolve with the client instance
       });
-
+  
       client.on('auth_failure', (msg) => {
         console.error(`Authentication failure for user ${userId}`, msg);
+        reject(new Error(`Authentication failure for user ${userId}`));
       });
-
+  
       client.on('authenticated', () => {
         console.log(`Authenticated successfully for user ${userId}`);
       });
-
-      client.on('disconnected', (reason) => {
-        console.log(`WhatsApp Web Client for user ${userId} was logged out`, reason);
-        client.initialize();
+  
+      client.on('disconnected', async (reason) => {
+        console.log(`WhatsApp Web Client for user ${userId} disconnected: ${reason}`);
+        this.isInitialized.set(userId, false);
+        await client.destroy();
+        await this.initializeWhatsApp(userId);
       });
-
+  
       try {
-        await client.initialize(); // Inicializa el cliente
+        await client.initialize();
       } catch (error) {
         console.error(`Initialization error for user ${userId}:`, error);
         reject(error);
       }
-    }).then(() => client); // Devuelve el cliente al finalizar
+    });
   }
-
+  
   private async generateQRCode(qr: string, filePath: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const qrDir = path.dirname(filePath);
@@ -88,29 +84,19 @@ export class WhatsAppService{
     });
   }
 
+  private async generateQRCodeBase64(qr: string): Promise<string> {
+    return QRCode.toDataURL(qr); // Convertir a base64
+  }
+
   async getQRCode(userId: string): Promise<string> {
-    console.log(`Getting QR code for user ${userId}`);
-
-    await this.initializeWhatsApp(userId);
-
-    const qrPath = path.join(__dirname, '..', 'qr', `${userId}_qrcode.png`);
-
-    // Esperar hasta que el archivo QR esté disponible
-    const checkInterval = 500; // Intervalo en ms para verificar la existencia del archivo
-    const maxRetries = 20; // Número máximo de intentos de verificación
-    let retries = 0;
-
-    while (!fs.existsSync(qrPath) && retries < maxRetries) {
-      await new Promise(resolve => setTimeout(resolve, checkInterval));
-      retries++;
-    }
-
-    if (fs.existsSync(qrPath)) {
-      return qrPath;
+    const qr = this.qrCodes.get(userId);
+    if (qr) {
+      return await this.generateQRCodeBase64(qr);
     } else {
-      throw new Error('QR Code not available yet.');
+      throw new Error('QR code not available.');
     }
   }
+  
 
   async isWhatsAppUser(phoneNumber: string, userId: string): Promise<boolean> {
     try {
@@ -118,9 +104,11 @@ export class WhatsAppService{
         return false;
       }
       const chatId = `${phoneNumber}@c.us`;
-      const client = await this.initializeWhatsApp(userId); // Asegurarse de que el cliente esté inicializado
-      const isRegistered = await client.isRegisteredUser(chatId);
-      return isRegistered;
+      const client = this.clients.get(userId); // Obtiene el cliente sin inicializarlo
+      if (!client || !this.isInitialized.get(userId)) {
+        throw new Error(`Client not initialized for user ${userId}`);
+      }
+      return await client.isRegisteredUser(chatId);;
     } catch (error) {
       console.error('Error checking if user is registered:', error);
       return false;
@@ -173,5 +161,11 @@ export class WhatsAppService{
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retrying
       }
     }
+  }
+
+
+  async isSessionActive(userId: string): Promise<boolean> {
+    const client = this.clients.get(userId);
+    return !!(client && client.info);
   }
 }

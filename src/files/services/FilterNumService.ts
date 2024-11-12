@@ -24,7 +24,7 @@ export class FilterNumService {
     }
   }
 
-  async filterNumbers(filePath: string): Promise<{ filteredFile: string; notWhatsAppFile: string }> {
+  async filterNumbers(filePath: string, userId: string): Promise<{ filteredFile: string; notWhatsAppFile: string }> {
     const workbook = XLSX.readFile(filePath);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
@@ -38,8 +38,8 @@ export class FilterNumService {
       const col1 = row[1] ? this.formatPhoneNumber(row[1].toString()) : "";
       const col2 = row[2] ? this.formatPhoneNumber(row[2].toString()) : "";
 
-      const isValidCol1 = col1 && await this.whatsappService.isWhatsAppUser(col1, "");
-      const isValidCol2 = col2 && await this.whatsappService.isWhatsAppUser(col2, "");
+      const isValidCol1 = col1 && await this.whatsappService.isWhatsAppUser(col1, userId);
+      const isValidCol2 = col2 && await this.whatsappService.isWhatsAppUser(col2, userId);
 
       if (isValidCol1 || isValidCol2) {
         row[1] = col1; // Reemplazar el número formateado

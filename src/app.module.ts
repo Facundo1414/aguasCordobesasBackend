@@ -33,6 +33,8 @@ import { FileService } from './files/services/FileService';
 import { ScrapingProcessor } from './scrape-send-data/services/ScrapingProcessor';
 import { AuthService } from './users/services/auth.service';
 import { CleanupService } from './files/services/CleanupService';
+import { JwtModule } from '@nestjs/jwt';
+import { WhatsAppController } from './whatsapp-service/controller/WhatsAppController';
 
 
 @Module({
@@ -40,6 +42,13 @@ import { CleanupService } from './files/services/CleanupService';
     ScrapingModule,
 
     QueuesModule,
+
+    JwtModule.registerAsync({
+      useFactory: () => ({
+        secret: process.env.JWT_SECRET,
+        signOptions: { expiresIn: '60m' },
+      }),
+    }),
 
     MulterModule.register({
       dest: './uploads', // Directorio donde se guardarán los archivos
@@ -95,6 +104,7 @@ import { CleanupService } from './files/services/CleanupService';
     ProcessController,
     ScrapingController,
     AuthController,
+    WhatsAppController
   ],
 
 

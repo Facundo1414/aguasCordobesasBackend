@@ -5,15 +5,22 @@ module.exports = {
     tsconfigRootDir: __dirname,
     sourceType: 'module',
   },
-  plugins: ['@typescript-eslint/eslint-plugin'],
+  plugins: [
+    '@typescript-eslint/eslint-plugin',
+    'bot-whatsapp'
+  ],
   extends: [
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
+    'plugin:bot-whatsapp/recommended'
   ],
   root: true,
   env: {
     node: true,
     jest: true,
+    browser: true,
+    commonjs: true,
+    es2021: true,
   },
   ignorePatterns: ['.eslintrc.js'],
   rules: {

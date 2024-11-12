@@ -17,11 +17,33 @@ export class FileStorageService implements OnModuleDestroy {
       port: 5432,
     });
 
-    this.client.connect();
+    this.client.connect().then(() => {
+      this.initializeDatabase();
+    }).catch(error => {
+      console.error('Error connecting to the database:', error);
+    });
 
-    // Crear el directorio temporal si no existe
+    // Create the temp directory if it doesn't exist
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir);
+    }
+  }
+
+  private async initializeDatabase(): Promise<void> {
+    try {
+      const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS file_storage (
+          id SERIAL PRIMARY KEY,
+          file_name VARCHAR(255) NOT NULL,
+          file_type VARCHAR(50),
+          data BYTEA NOT NULL,
+          user_id INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      await this.client.query(createTableQuery);
+    } catch (error) {
+      console.error('Error initializing database:', error);
     }
   }
 
@@ -44,7 +66,7 @@ export class FileStorageService implements OnModuleDestroy {
     }
   }
 
-  async saveFile(filePath: string, fileType: string, userId: number): Promise<void> {
+  async saveFile(filePath: string, fileType: string, userId: string): Promise<void> {
     try {
       const fileData = fs.readFileSync(filePath);
       const fileName = path.basename(filePath);
@@ -93,11 +115,9 @@ export class FileStorageService implements OnModuleDestroy {
       throw error;
     }
   }
-  
 
   async getFilePath(fileName: string): Promise<string> {
     try {
-      // Busca el archivo en la base de datos y lo guarda en el directorio temporal
       const tempFilePath = await this.getFile(fileName);
       return tempFilePath;
     } catch (error) {

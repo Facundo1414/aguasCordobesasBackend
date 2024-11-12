@@ -4,6 +4,7 @@ import { UserService } from '../services/users.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RefreshToken } from '../jwt/refresh-token.entity';
 import { Repository } from 'typeorm';
+import { WhatsAppService } from 'src/whatsapp-service/services/WhatsappService';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +13,7 @@ export class AuthService {
     private jwtService: JwtService,
     @InjectRepository(RefreshToken)
     private refreshTokensRepository: Repository<RefreshToken>,
+    private whatsappService: WhatsAppService,
   ) {}
 
 
@@ -19,40 +21,21 @@ export class AuthService {
     await this.userService.removeRefreshToken(userId); // Invalida el refresh token
   }
 
+// En AuthService al iniciar sesión en el backend
   async login(username: string, password: string): Promise<{ accessToken: string, refreshToken: string }> {
     const user = await this.userService.findUserByUsername(username);
-    if (!user) {
-      console.log('Usuario no encontrado');
-      throw new UnauthorizedException('Invalid credentials');
-  }
-
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+    
     const isPasswordValid = await this.userService.validatePassword(password, user.password);
-    console.log('¿La contraseña es válida?', isPasswordValid); // Este log debería mostrar `true`
-
-    if (!isPasswordValid) {
-        throw new UnauthorizedException('Invalid credentials');
-    }
+    if (!isPasswordValid) throw new UnauthorizedException('Invalid credentials');
     
     const payload = { username: user.username, sub: user.id };
-    const accessToken = "";
-    console.log("todo ok");
-
-    try {
-      const accessToken = this.jwtService.sign(payload);
-      console.log("Access token generado correctamente:", accessToken);
-    } catch (error) {
-      console.error("Error al generar access token:", error);
-      throw new UnauthorizedException('Error al generar access token');
-    }
-    
-
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' }); // Generar el refresh token
-
-    // Almacenar el refresh token en la base de datos o en otro lugar seguro
-    await this.storeRefreshToken(user.id, refreshToken); // Método para almacenar el refresh token
-  
-    return { accessToken, refreshToken }; // Retornar ambos tokens
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+    return { accessToken, refreshToken };
   }
+
+
 
   async storeRefreshToken(userId: number, refreshToken: string): Promise<void> {
     const expiryDate = new Date();
