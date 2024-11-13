@@ -167,7 +167,7 @@ export class WhatsAppService{
   async logout(userId: string): Promise<void> {
     const client = this.clients.get(userId);
     if (client) {
-      await client.logout(); // Cierra la sesión de WhatsApp
+      //await client.logout(); // Cierra la sesión de WhatsApp
       await client.destroy(); // Destruye el cliente
       this.clients.delete(userId); // Elimina el cliente del mapa
       this.isInitialized.delete(userId); // Elimina el estado de inicialización
