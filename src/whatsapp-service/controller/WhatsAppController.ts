@@ -93,6 +93,24 @@ export class WhatsAppController {
   }
 
 
-  
+  @UseGuards(AuthGuard)
+  @Get('logout')
+  async logout(@Request() req: any, @Res() res: Response) {
+    const token = req.headers.authorization?.split(' ')[1];
+    const userId = await this.extractUserIdFromToken(token);
+
+    if (!userId) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'User not authenticated' });
+    }
+
+    try {
+      await this.whatsappService.logout(userId);
+      return res.status(HttpStatus.OK).json({ message: 'WhatsApp session has been logged out successfully' });
+    } catch (error) {
+      console.error('Error logging out WhatsApp session:', error);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to logout WhatsApp session' });
+    }
+  }
+
 
 }

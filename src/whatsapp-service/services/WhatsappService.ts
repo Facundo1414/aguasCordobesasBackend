@@ -29,11 +29,21 @@ export class WhatsAppService{
     this.clients.set(userId, client);
     this.isInitialized.set(userId, false);
   
-    return new Promise<Client>(async (resolve, reject) => { // Change Promise<void> to Promise<Client>
+    return new Promise<Client>(async (resolve, reject) => {
+      const timeout = setTimeout(async () => {
+        if (!this.isInitialized.get(userId)) {
+          console.log(`QR expirado para el usuario ${userId}, cerrando sesión.`);
+          await this.logout(userId);
+          reject(new Error(`QR code expired for user ${userId}.`));
+        }
+      }, 360000); // Tiempo de espera de 360 segundos para el QR
+
+
+
       client.on('qr', async (qr) => {
         console.log(`Received QR Code for user ${userId}`);
         this.qrCodes.set(userId, qr);
-        await this.generateQRCodeBase64(qr); // Resolve without `then` for simpler code
+        await this.generateQRCodeBase64(qr); 
       });
   
       client.on('ready', () => {
@@ -67,22 +77,6 @@ export class WhatsAppService{
     });
   }
   
-  private async generateQRCode(qr: string, filePath: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const qrDir = path.dirname(filePath);
-      if (!fs.existsSync(qrDir)) {
-        fs.mkdirSync(qrDir, { recursive: true });
-      }
-
-      QRCode.toFile(filePath, qr, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
 
   private async generateQRCodeBase64(qr: string): Promise<string> {
     return QRCode.toDataURL(qr); // Convertir a base64
@@ -168,4 +162,22 @@ export class WhatsAppService{
     const client = this.clients.get(userId);
     return !!(client && client.info);
   }
+
+
+  async logout(userId: string): Promise<void> {
+    const client = this.clients.get(userId);
+    if (client) {
+      await client.logout(); // Cierra la sesión de WhatsApp
+      await client.destroy(); // Destruye el cliente
+      this.clients.delete(userId); // Elimina el cliente del mapa
+      this.isInitialized.delete(userId); // Elimina el estado de inicialización
+      this.qrCodes.delete(userId); // Elimina el QR
+      console.log(`User ${userId} has logged out and client destroyed`);
+    } else {
+      console.warn(`No active client found for user ${userId}`);
+    }
+  }
+  
+  
 }
+
