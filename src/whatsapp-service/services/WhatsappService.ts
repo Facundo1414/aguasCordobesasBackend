@@ -8,88 +8,62 @@ import * as path from 'path';
 export class WhatsAppService{
   private clients: Map<string, Client> = new Map(); // Mapa para manejar múltiples clientes
   private isInitialized = new Map<string, boolean>(); // Estado de inicialización por usuario
-  private qrCodes: Map<string, string> = new Map();
 
   constructor() {}
 
 
 
-  async initializeWhatsApp(userId: string): Promise<Client> {
+  async initializeWhatsApp(userId: string): Promise<{ client: Client, qrCode?: string }> {
     if (this.isInitialized.get(userId)) {
-      return this.clients.get(userId); // Return already initialized client
+      return { client: this.clients.get(userId) };
     }
   
     const client = new Client({
-      authStrategy: new LocalAuth({ clientId: userId }), // Change clientId for multiple instances
-      puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      },
+      authStrategy: new LocalAuth({ clientId: userId }),
+      puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] },
     });
   
     this.clients.set(userId, client);
     this.isInitialized.set(userId, false);
   
-    return new Promise<Client>(async (resolve, reject) => {
-      const timeout = setTimeout(async () => {
-        if (!this.isInitialized.get(userId)) {
-          console.log(`QR expirado para el usuario ${userId}, cerrando sesión.`);
-          await this.logout(userId);
-          reject(new Error(`QR code expired for user ${userId}.`));
-        }
-      }, 360000); // Tiempo de espera de 360 segundos para el QR
-
-
-
+    return new Promise((resolve, reject) => {
       client.on('qr', async (qr) => {
-        console.log(`Received QR Code for user ${userId}`);
-        this.qrCodes.set(userId, qr);
-        await this.generateQRCodeBase64(qr); 
+        console.log(`QR generado para usuario ${userId}`);
+        const qrCodeBase64 = await QRCode.toDataURL(qr);
+        // Solo enviamos el código QR si aún no está listo
+        if (!this.isInitialized.get(userId)) {
+          resolve({ client, qrCode: qrCodeBase64 });
+        }
       });
   
       client.on('ready', () => {
-        console.log(`WhatsApp Web Client for user ${userId} is ready!`);
+        console.log(`Cliente de WhatsApp para usuario ${userId} listo`);
         this.isInitialized.set(userId, true);
-        resolve(client); // Resolve with the client instance
+        resolve({ client }); // Resolución cuando está listo
       });
   
       client.on('auth_failure', (msg) => {
-        console.error(`Authentication failure for user ${userId}`, msg);
-        reject(new Error(`Authentication failure for user ${userId}`));
-      });
-  
-      client.on('authenticated', () => {
-        console.log(`Authenticated successfully for user ${userId}`);
+        console.error(`Fallo de autenticación para usuario ${userId}`, msg);
+        reject(new Error(`Fallo de autenticación para usuario ${userId}`));
       });
   
       client.on('disconnected', async (reason) => {
-        console.log(`WhatsApp Web Client for user ${userId} disconnected: ${reason}`);
+        console.log(`Cliente de WhatsApp para usuario ${userId} desconectado: ${reason}`);
         this.isInitialized.set(userId, false);
         await client.destroy();
         await this.initializeWhatsApp(userId);
       });
   
       try {
-        await client.initialize();
+        client.initialize();
       } catch (error) {
-        console.error(`Initialization error for user ${userId}:`, error);
+        console.error(`Error al inicializar para usuario ${userId}:`, error);
         reject(error);
       }
     });
   }
   
-
-  private async generateQRCodeBase64(qr: string): Promise<string> {
-    return QRCode.toDataURL(qr); // Convertir a base64
-  }
-
-  async getQRCode(userId: string): Promise<string> {
-    const qr = this.qrCodes.get(userId);
-    if (qr) {
-      return await this.generateQRCodeBase64(qr);
-    } else {
-      throw new Error('QR code not available.');
-    }
-  }
+  
   
 
   async isWhatsAppUser(phoneNumber: string, userId: string): Promise<boolean> {
@@ -112,7 +86,7 @@ export class WhatsAppService{
   async sendMessage(phoneNumber: string, message: string, userId: string): Promise<void> {
     try {
       const chatId = `${phoneNumber}@c.us`;
-      const client = await this.initializeWhatsApp(userId); // Asegurarse de que el cliente esté inicializado
+      const client = this.clients.get(userId); // Obtiene el cliente sin inicializarlo
       await client.sendMessage(chatId, message);
       console.log(`Message sent to ${phoneNumber} by user ${userId}`);
     } catch (error) {
@@ -128,7 +102,7 @@ export class WhatsAppService{
       }
 
       const chatId = `${phoneNumber}@c.us`;
-      const client = await this.initializeWhatsApp(userId); // Asegurarse de que el cliente esté inicializado
+      const client = this.clients.get(userId); // Obtiene el cliente sin inicializarlo
       const media = MessageMedia.fromFilePath(filePath);
       const caption = message || `Hola ${clientName}, te envío el PDF actualizado. Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
 
@@ -163,6 +137,12 @@ export class WhatsAppService{
     return !!(client && client.info);
   }
 
+  async checkSessionStatus(userId: string): Promise<boolean> {
+    const client = this.clients.get(userId);
+    return client ? client.info !== null : false;
+  }
+  
+
 
   async logout(userId: string): Promise<void> {
     const client = this.clients.get(userId);
@@ -171,7 +151,6 @@ export class WhatsAppService{
       await client.destroy(); // Destruye el cliente
       this.clients.delete(userId); // Elimina el cliente del mapa
       this.isInitialized.delete(userId); // Elimina el estado de inicialización
-      this.qrCodes.delete(userId); // Elimina el QR
       console.log(`User ${userId} has logged out and client destroyed`);
     } else {
       console.warn(`No active client found for user ${userId}`);

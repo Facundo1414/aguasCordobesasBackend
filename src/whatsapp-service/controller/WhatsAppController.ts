@@ -43,34 +43,32 @@ export class WhatsAppController {
   async initializeWhatsApp(@Request() req: any, @Res() res: Response) {
     const token = req.headers.authorization?.split(' ')[1];
     const userId = await this.extractUserIdFromToken(token);
-
+  
     if (!userId) {
       return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'User not authenticated' });
     }
-
+  
+    // Check if the WhatsApp session is already active
+    const isSessionActive = await this.whatsappService.checkSessionStatus(userId);
+    if (isSessionActive) {
+      return res.status(HttpStatus.OK).json({ message: 'ok' });
+    }
+  
+    // If not active, initialize a new session
     try {
-      const client = await this.whatsappService.initializeWhatsApp(userId);
-      return res.status(HttpStatus.OK).json({ message: 'WhatsApp session initialized', clientId: userId });
+      console.log(`Inicializando cliente de WhatsApp para usuario: ${userId}`);
+      const { client, qrCode } = await this.whatsappService.initializeWhatsApp(userId);
+      return res.status(HttpStatus.OK).json({
+        message: 'Sesión de WhatsApp inicializada',
+        clientId: userId,
+        qrCode,
+      });
     } catch (error) {
-      console.error('Error initializing WhatsApp session:', error);
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to initialize WhatsApp session' });
+      console.error('Error al inicializar sesión de WhatsApp:', error);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Fallo al inicializar la sesión de WhatsApp' });
     }
   }
-
-  @UseGuards(AuthGuard)
-  @Get('qrcode')
-  async getQRCode(@Request() req: any, @Res() res: Response) {
-    const token = req.headers.authorization?.split(' ')[1];
-    const userId = await this.extractUserIdFromToken(token);
-
-    try {
-      const qrCodeBase64 = await this.whatsappService.getQRCode(userId);
-      return res.status(HttpStatus.OK).json({ qrCode: qrCodeBase64 });
-    } catch (error) {
-      console.error('Error fetching QR code:', error);
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Unable to retrieve QR code' });
-    }
-  }
+  
 
   
   @UseGuards(AuthGuard)
