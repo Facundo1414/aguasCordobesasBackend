@@ -76,7 +76,7 @@ export class WhatsAppService{
       if (!client || !this.isInitialized.get(userId)) {
         throw new Error(`Client not initialized for user ${userId}`);
       }
-      return await client.isRegisteredUser(chatId);;
+      return await client.isRegisteredUser(chatId);
     } catch (error) {
       console.error('Error checking if user is registered:', error);
       return false;

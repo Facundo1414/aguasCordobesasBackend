@@ -71,7 +71,7 @@ export class FileUploadController {
           cb(null, `${file.originalname}-${uniqueSuffix}.${extension}`);
         },
       }),
-    }),
+    }), 
   )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
