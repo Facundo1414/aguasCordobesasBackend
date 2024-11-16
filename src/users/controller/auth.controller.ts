@@ -52,7 +52,7 @@ export class AuthController {
   }
 
 
-  @Get('validate-token')
+  @Post('validate-token')
   @UseGuards(AuthGuard('jwt'))
   async validateToken(@Req() req: any, @Res() res: Response) {
     try {
