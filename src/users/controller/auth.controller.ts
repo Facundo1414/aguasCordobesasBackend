@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpStatus, Res, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, Res, UseGuards, Req, Get } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { UserService } from '../services/users.service';
@@ -50,4 +50,17 @@ export class AuthController {
       return res.status(HttpStatus.CONFLICT).json({ message: error.message });
     }
   }
+
+
+  @Get('validate-token')
+  @UseGuards(AuthGuard('jwt'))
+  async validateToken(@Req() req: any, @Res() res: Response) {
+    try {
+      // Si el guard pasa, el token es válido
+      return res.status(HttpStatus.OK).json({ message: 'Token is valid' });
+    } catch (error) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid token' });
+    }
+  }
+
 }

@@ -39,22 +39,22 @@ import { FileUpload } from './files/models/File.entity';
 
 @Module({
   imports: [
-    ScrapingModule,
+    ScrapingModule, 
 
-    QueuesModule,
+    QueuesModule, 
 
-    JwtModule.registerAsync({
+    JwtModule.registerAsync({ 
       useFactory: () => ({
         secret: process.env.JWT_SECRET,
         signOptions: { expiresIn: '60m' },
       }),
     }),
 
-    MulterModule.register({
+    MulterModule.register({ 
       dest: './uploads', // Directorio donde se guardarán los archivos
     }),
 
-    TypeOrmModule.forRoot({
+    TypeOrmModule.forRoot({ 
       type: 'postgres',
       host: 'localhost',
       port: 5432,
@@ -64,36 +64,36 @@ import { FileUpload } from './files/models/File.entity';
       entities: [FileUpload, User, RefreshToken],
       synchronize: true, // TODO Asegúrate de ponerlo en `false` en producción
     }),
-    TypeOrmModule.forFeature([FileUpload, User, RefreshToken]),
+    TypeOrmModule.forFeature([FileUpload, User, RefreshToken]), 
 
-    BullModule.forRoot({
+    BullModule.forRoot({ 
       redis: {
         host: 'localhost',
         port: 6379,
       },
     }),
-    BullModule.registerQueue({
-      name: 'scraping',
-      defaultJobOptions: {
-        attempts: 3,  // Número de intentos si el trabajo falla
-        backoff: 5000,  // Tiempo de espera entre intentos
-      },
-    }),
-    BullModule.registerQueue({
-      name: 'whatsapp',
-      defaultJobOptions: {
-        attempts: 3,  // Número de intentos si el trabajo falla
-        backoff: 5000,  // Tiempo de espera entre intentos
-      },
-    }),
+    // BullModule.registerQueue({
+    //   name: 'scraping',
+    //   defaultJobOptions: {
+    //     attempts: 3,  // Número de intentos si el trabajo falla
+    //     backoff: 5000,  // Tiempo de espera entre intentos
+    //   },
+    // }),
+    // BullModule.registerQueue({
+    //   name: 'whatsapp',
+    //   defaultJobOptions: {
+    //     attempts: 3,  // Número de intentos si el trabajo falla
+    //     backoff: 5000,  // Tiempo de espera entre intentos
+    //   },
+    // }),
 
-    HttpModule,
+    HttpModule, 
 
-    ScheduleModule.forRoot(),
+    ScheduleModule.forRoot(), 
 
-    AuthModule,
+    AuthModule, 
 
-    UsersModule,
+    UsersModule, 
 
 
   ], 
