@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
-export class File {
+export class FileUpload {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -13,4 +13,7 @@ export class File {
 
   @Column()
   userId: number; // Relación con la tabla de Usuarios
+
+  @Column({ default: false })
+  processed: boolean; // Nueva columna para marcar si el archivo ha sido procesado
 }

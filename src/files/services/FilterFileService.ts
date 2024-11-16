@@ -3,12 +3,17 @@ import * as path from 'path';
 import { readExcelFile, writeExcelFile } from '../../files/utils/ExcelTools';
 import { FileStorageService } from 'src/files/services/FileStorageService';
 import { FilterNumService } from './FilterNumService';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { FileUpload } from '../models/File.entity';
 
 @Injectable()
 export class FilterFileService {
   constructor(
     private readonly filterNumService: FilterNumService,
-    private readonly fileStorageService: FileStorageService
+    private readonly fileStorageService: FileStorageService,
+    @InjectRepository(FileUpload)
+    private readonly fileRepository: Repository<FileUpload>,
   ) {}
 
   async processFile(filePath: string, userId: string): Promise<string[]> {
@@ -41,9 +46,11 @@ export class FilterFileService {
       await this.fileStorageService.saveFile(
         clientsWithWhatsAppFilePath,
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        userId
+        userId,
+        true
       );
       console.log(`Clients with WhatsApp file created at ${clientsWithWhatsAppFilePath}`);
+
 
       // Eliminar archivo temporal de números filtrados
       await this.fileStorageService.deleteTempFile(filteredFile);
@@ -63,4 +70,6 @@ export class FilterFileService {
       throw error;
     }
   }
+
+
 }

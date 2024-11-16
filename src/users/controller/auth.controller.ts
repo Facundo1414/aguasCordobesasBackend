@@ -4,7 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { UserService } from '../services/users.service';
 import { AuthService } from '../services/auth.service';
 
-@Controller('auth')
+@Controller('/api/auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -16,6 +16,8 @@ export class AuthController {
     const { username, password } = body;
     try {
       const loginResult = await this.authService.login(username, password);
+      console.log(`User ${username} has athenticated`);
+      
       return res.status(HttpStatus.OK).json(loginResult);
     } catch (error) {
       return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid credentials' });

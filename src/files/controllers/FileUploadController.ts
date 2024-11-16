@@ -10,6 +10,10 @@ import {
   Req,
   Request,
   HttpStatus,
+  Get,
+  Param,
+  Res,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
@@ -21,6 +25,8 @@ import { AuthGuard } from 'src/users/services/auth.guard';
 import { CustomRequest } from 'src/interfaces/custom-request.interface';
 import * as jwt from 'jsonwebtoken';
 import { UserService } from 'src/users/services/users.service';
+import { FileStorageService } from '../services/FileStorageService';
+import { Response } from 'express';
 
 const UPLOADS_DIR = join(__dirname, '..', 'uploads');
 
@@ -28,12 +34,13 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-@Controller('upload')
+@Controller('api/upload')
 @ApiTags('upload')
 export class FileUploadController {
   constructor(
     private readonly fileUploadService: FileUploadService,
     private readonly userService: UserService,
+    private readonly fileStorageService: FileStorageService,
   ) {}
 
   private async extractUserIdFromToken(token: string): Promise<string | null> {
@@ -111,6 +118,47 @@ export class FileUploadController {
     } catch (error) {
       console.error('Error processing file:', error);
       throw new BadRequestException('Error processing file');
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('getFileByName/:fileName')
+  async getFileByName(@Param('fileName') fileName: string, @Request() req: any, @Res() res: Response) {
+    const token = req.headers.authorization?.split(' ')[1];
+    const userId = await this.extractUserIdFromToken(token);
+    
+    if (!userId) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'User not authenticated' });
+    }
+
+    try {
+      const filePath = await this.fileStorageService.getFilePath(fileName);
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error('Error fetching file:', error);
+      res.status(HttpStatus.NOT_FOUND).send('File not found.');
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('file-status')
+  async checkFileStatus(@Query('filename') fileName: string, @Request() req: any, @Res() res: Response) {
+    if (!fileName) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ message: 'File name is required' });
+    }
+
+    try {
+      // Verifica si el archivo ha sido procesado
+      const isProcessed = await this.fileStorageService.isFileProcessed(fileName);
+      
+      if (isProcessed) {
+        return res.status(HttpStatus.OK).json({ status: 'processed', message: 'File has been processed' });
+      } else {
+        return res.status(HttpStatus.OK).json({ status: 'processing', message: 'File is still being processed' });
+      }
+    } catch (error) {
+      console.error('Error checking file status:', error);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Error checking file status' });
     }
   }
 }

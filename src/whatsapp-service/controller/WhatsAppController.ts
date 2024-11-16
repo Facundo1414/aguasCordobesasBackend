@@ -1,5 +1,5 @@
 // controllers/WhatsAppController.ts
-import { Controller, Get, HttpStatus, Request, Res, UseGuards, Param } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Request, Res, UseGuards, Param, Options } from '@nestjs/common';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { WhatsAppService } from '../services/WhatsappService';
@@ -37,6 +37,15 @@ export class WhatsAppController {
     }
   }
 
+  // Este método maneja las solicitudes OPTIONS para todas las rutas del controlador
+  @Options('*')
+  handleOptions(@Res() res: Response) {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    return res.status(HttpStatus.OK).json({ message: 'CORS headers set successfully' });
+  }
 
   @UseGuards(AuthGuard)
   @Get('initialize')
@@ -68,9 +77,7 @@ export class WhatsAppController {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Fallo al inicializar la sesión de WhatsApp' });
     }
   }
-  
 
-  
   @UseGuards(AuthGuard)
   @Get("isLoggedIn")
   async getIsLoggedIn(@Request() req: any, @Res() res: Response) {
@@ -90,7 +97,6 @@ export class WhatsAppController {
     }
   }
 
-
   @UseGuards(AuthGuard)
   @Get('logout')
   async logout(@Request() req: any, @Res() res: Response) {
@@ -109,6 +115,4 @@ export class WhatsAppController {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to logout WhatsApp session' });
     }
   }
-
-
 }

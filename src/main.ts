@@ -20,11 +20,19 @@ async function bootstrap() {
     }, 
   }));
 
+  app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      console.log('Preflight request received');
+    }
+    next();
+  });
+  
+
   app.enableCors({
-    origin: '*', // Permite cualquier origen.
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: ['https://aguas-cordobesas-front.vercel.app','https://bright-trout-amazingly.ngrok-free.app','http://localhost:3001'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Authorization',
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   app.useGlobalPipes(new ValidationPipe());
@@ -41,3 +49,6 @@ async function bootstrap() {
   await app.listen(process.env.PORT || 3000);
 }
 bootstrap();
+
+
+"ngrok http --url=bright-trout-amazingly.ngrok-free.app 3000"

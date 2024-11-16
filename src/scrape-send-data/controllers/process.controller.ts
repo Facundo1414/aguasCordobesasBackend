@@ -10,7 +10,7 @@ import { AuthGuard } from 'src/users/services/auth.guard';
 import { UserService } from 'src/users/services/users.service';
 import * as jwt from 'jsonwebtoken';
 
-@Controller('process')
+@Controller('api/process')
 export class ProcessController {
   constructor(
     private readonly fileProcessingService: FileProcessingService,

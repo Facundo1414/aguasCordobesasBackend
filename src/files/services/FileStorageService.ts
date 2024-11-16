@@ -15,6 +15,7 @@ export class FileStorageService implements OnModuleDestroy {
       database: 'aquaDB',
       password: 'root',
       port: 5432,
+      synchronize: true,
     });
 
     this.client.connect().then(() => {
@@ -35,10 +36,11 @@ export class FileStorageService implements OnModuleDestroy {
         CREATE TABLE IF NOT EXISTS file_storage (
           id SERIAL PRIMARY KEY,
           file_name VARCHAR(255) NOT NULL,
-          file_type VARCHAR(50),
+          file_type VARCHAR(255),
           data BYTEA NOT NULL,
           user_id INTEGER NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          processed BOOLEAN DEFAULT FALSE
         );
       `;
       await this.client.query(createTableQuery);
@@ -46,6 +48,7 @@ export class FileStorageService implements OnModuleDestroy {
       console.error('Error initializing database:', error);
     }
   }
+  
 
   async saveTempFile(file: Express.Multer.File): Promise<string> {
     const tempFilePath = path.join(this.tempDir, file.filename);
@@ -66,14 +69,14 @@ export class FileStorageService implements OnModuleDestroy {
     }
   }
 
-  async saveFile(filePath: string, fileType: string, userId: string): Promise<void> {
+  async saveFile(filePath: string, fileType: string, userId: string, processed: boolean = false): Promise<void> {
     try {
       const fileData = fs.readFileSync(filePath);
       const fileName = path.basename(filePath);
 
       const insertQuery = `
-        INSERT INTO file_storage (file_name, file_type, data, user_id) 
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO file_storage (file_name, file_type, data, user_id, processed) 
+        VALUES ($1, $2, $3, $4, $5)
       `;
 
       await this.client.query(insertQuery, [
@@ -81,6 +84,7 @@ export class FileStorageService implements OnModuleDestroy {
         fileType,
         fileData,
         userId,
+        processed,
       ]);
     } catch (error) {
       console.error('Error saving file to database:', error);
@@ -128,6 +132,25 @@ export class FileStorageService implements OnModuleDestroy {
 
   getTempDir(): string {
     return this.tempDir;
+  }
+
+  // Método para verificar si un archivo ha sido procesado
+  async isFileProcessed(fileName: string): Promise<boolean> {
+    try {
+      const query = 'SELECT processed FROM file_storage WHERE file_name = $1';
+      const result = await this.client.query(query, [fileName]);
+
+      if (result.rows.length === 0) {
+        console.error(`File with name "${fileName}" not found in database.`);
+        return false
+      }
+
+      const { processed } = result.rows[0];
+      return processed; // Retorna true si el archivo ha sido procesado
+    } catch (error) {
+      console.error('Error checking file processed status:', error);
+      throw error;
+    }
   }
 
   async onModuleDestroy() {

@@ -101,8 +101,13 @@ export class WhatsAppService{
         return;
       }
 
+      const client = this.clients.get(userId);
+      if (!client || !this.isInitialized.get(userId)) {
+        console.error(`Client is not initialized for user ${userId}`);
+        return;
+      }
+
       const chatId = `${phoneNumber}@c.us`;
-      const client = this.clients.get(userId); // Obtiene el cliente sin inicializarlo
       const media = MessageMedia.fromFilePath(filePath);
       const caption = message || `Hola ${clientName}, te envío el PDF actualizado. Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
 

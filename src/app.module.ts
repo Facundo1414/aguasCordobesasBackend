@@ -6,7 +6,6 @@ import { FileUploadService } from './files/services/FileUploadService';
 import { MulterModule } from '@nestjs/platform-express';
 import { WhatsAppService } from './whatsapp-service/services/WhatsappService';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { File } from './files/models/File.entity';
 import { FileStorageService } from './files/services/FileStorageService';
 import { BullModule } from '@nestjs/bull';
 import { QueuesModule } from './scrape-send-data/utils/queues.module';
@@ -35,6 +34,7 @@ import { AuthService } from './users/services/auth.service';
 import { CleanupService } from './files/services/CleanupService';
 import { JwtModule } from '@nestjs/jwt';
 import { WhatsAppController } from './whatsapp-service/controller/WhatsAppController';
+import { FileUpload } from './files/models/File.entity';
 
 
 @Module({
@@ -61,10 +61,10 @@ import { WhatsAppController } from './whatsapp-service/controller/WhatsAppContro
       username: 'postgres',
       password: 'root',
       database: 'aquaDB',
-      entities: [File, User, RefreshToken],
+      entities: [FileUpload, User, RefreshToken],
       synchronize: true, // TODO Asegúrate de ponerlo en `false` en producción
     }),
-    TypeOrmModule.forFeature([File, User, RefreshToken]),
+    TypeOrmModule.forFeature([FileUpload, User, RefreshToken]),
 
     BullModule.forRoot({
       redis: {
@@ -94,6 +94,7 @@ import { WhatsAppController } from './whatsapp-service/controller/WhatsAppContro
     AuthModule,
 
     UsersModule,
+
 
   ], 
 
