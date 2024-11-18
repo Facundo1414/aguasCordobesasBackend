@@ -6,7 +6,7 @@ import { ScrapingService } from './scraping.service';
 export class ScrapingProcessor {
   constructor(private readonly scrapingService: ScrapingService) {}
 
-  @Process({ concurrency: 5 })  // Configuración de la concurrencia
+  @Process({ concurrency: 8 })  // Configuración de la concurrencia
   async handleScraping(job: Job) {
     const { searchValue } = job.data;
     await this.scrapingService.scrape(searchValue, 1);

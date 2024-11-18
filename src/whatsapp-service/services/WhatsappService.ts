@@ -109,10 +109,10 @@ export class WhatsAppService{
 
       const chatId = `${phoneNumber}@c.us`;
       const media = MessageMedia.fromFilePath(filePath);
-      const caption = message || `Hola ${clientName}, te envío el PDF actualizado. Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
+      const caption = message || `Hola ${clientName}, te envío el PDF actualizado de la CUOTA PLAN DE PAGOS. Por favor, no dejes que venza. Puedes realizar el abono en cualquier Rapipago, Pago Fácil o a través de Mercado Pago.
 
-    🌐 Cclip 
-    🔹 Al servicio de Aguas Cordobesas.`;
+🌐 Cclip 
+🔹 Al servicio de Aguas Cordobesas.`;
       await client.sendMessage(chatId, media, { caption });
       console.log(`PDF sent to ${phoneNumber} by user ${userId}`);
     } catch (error) {
