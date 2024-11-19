@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -7,6 +7,7 @@ import { RefreshToken } from '../jwt/refresh-token.entity';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);  
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
@@ -51,7 +52,9 @@ export class UserService {
 
   async removeRefreshToken(userId: number): Promise<void> {
     await this.refreshTokensRepository.delete({ user: { id: userId } });
+    this.logger.log(`User with ID: ${userId} logged out`); // Uso de Logger
   }
+  
 
   async register(username: string, password: string): Promise<User> {
     const existingUser = await this.findUserByUsername(username);

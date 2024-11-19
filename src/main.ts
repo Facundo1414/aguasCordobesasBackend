@@ -5,20 +5,26 @@ import { ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import * as session from 'express-session';
 import { getConnection } from 'typeorm';
+import { TimeoutInterceptor } from './timeOutInterceptor';
 
 dotenv.config();
 
 async function bootstrap() {
   
   const app = await NestFactory.create(AppModule);
-  app.use(session({
-    secret: process.env.JWT_SECRET ,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { 
-      maxAge: 60000,
-    }, 
-  }));
+  app.use(
+    session({
+      secret: process.env.JWT_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        maxAge: 3600000, // 1 hora
+        secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+        httpOnly: true, // Protege la cookie contra accesos del cliente
+      },
+    }),
+  );
+  
 
   app.use((req, res, next) => {
     if (req.method === 'OPTIONS') {
@@ -27,6 +33,8 @@ async function bootstrap() {
     next();
   });
   
+  app.useGlobalInterceptors(new TimeoutInterceptor());
+
 
   app.enableCors({
     origin: ['https://aguas-cordobesas-front.vercel.app','https://bright-trout-amazingly.ngrok-free.app','http://localhost:3001'],

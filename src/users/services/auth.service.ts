@@ -31,7 +31,7 @@ export class AuthService {
     
     const payload = { username: user.username, sub: user.id };
     const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: '1d' });
     return { accessToken, refreshToken };
   }
 
@@ -39,7 +39,7 @@ export class AuthService {
 
   async storeRefreshToken(userId: number, refreshToken: string): Promise<void> {
     const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 7); // Establecer expiración a 7 días
+    expiryDate.setDate(expiryDate.getDate() + 1); // Establecer expiración a 1 días
 
     const newRefreshToken = this.refreshTokensRepository.create({
         token: refreshToken,
