@@ -33,17 +33,17 @@ export class FileProcessingService {
           const pdfPath = await this.scrapingService.scrape(clientUF, expiration);
           if (pdfPath) {
             await this.whatsAppService.sendPDF(clientPhoneNumber, clientName, pdfPath, message, userId);
-            this.processGateway.sendLogMessage(`Mensaje enviado a ${clientName} (${clientPhoneNumber})`);
+            this.processGateway.sendLogMessage(userId,`Mensaje enviado a ${clientName} (${clientPhoneNumber})`);
             // Eliminar el archivo PDF temporal después de enviarlo
             fs.unlinkSync(pdfPath);
           } else {
-            this.processGateway.sendLogMessage(`No hay PDF disponible para ${clientName} (UF: ${clientUF}). Posiblemente no hay deuda.`);
+            this.processGateway.sendLogMessage(userId,`No hay PDF disponible para ${clientName} (UF: ${clientUF}). Posiblemente no hay deuda.`);
           }
         } catch (error) {
-          this.processGateway.sendLogMessage(`Error al procesar ${clientName} (UF: ${clientUF}): ${error.message}`);
+          this.processGateway.sendLogMessage(userId,`Error al procesar ${clientName} (UF: ${clientUF}): ${error.message}`);
         }
       } else {
-        this.processGateway.sendLogMessage(`Datos incompletos para ${clientName} (UF: ${clientUF})`);
+        this.processGateway.sendLogMessage(userId,`Datos incompletos para ${clientName} (UF: ${clientUF})`);
       }
     });
 
