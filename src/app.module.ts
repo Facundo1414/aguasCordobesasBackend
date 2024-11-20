@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ScrapingModule } from './scrape-send-data/models/scraping.module';
 import { FileUploadService } from './files/services/FileUploadService';
 import { MulterModule } from '@nestjs/platform-express';
@@ -56,13 +54,14 @@ import { FileUpload } from './files/models/File.entity';
 
     TypeOrmModule.forRoot({ 
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'root',
-      database: 'aquaDB',
-      entities: [FileUpload, User, RefreshToken],
-      synchronize: true, // TODO Asegúrate de ponerlo en `false` en producción
+      host: process.env.DB_HOST, 
+      port: Number(process.env.DB_PORT) || 5432, 
+      username: process.env.DB_USER, 
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME, 
+      entities: [FileUpload, User, RefreshToken], 
+      synchronize: false, 
+      ssl: { rejectUnauthorized: false }, // Render requiere SSL
     }),
     TypeOrmModule.forFeature([FileUpload, User, RefreshToken]), 
 
@@ -72,20 +71,6 @@ import { FileUpload } from './files/models/File.entity';
         port: 6379,
       },
     }),
-    // BullModule.registerQueue({
-    //   name: 'scraping',
-    //   defaultJobOptions: {
-    //     attempts: 3,  // Número de intentos si el trabajo falla
-    //     backoff: 5000,  // Tiempo de espera entre intentos
-    //   },
-    // }),
-    // BullModule.registerQueue({
-    //   name: 'whatsapp',
-    //   defaultJobOptions: {
-    //     attempts: 3,  // Número de intentos si el trabajo falla
-    //     backoff: 5000,  // Tiempo de espera entre intentos
-    //   },
-    // }),
 
     HttpModule, 
 
@@ -100,7 +85,6 @@ import { FileUpload } from './files/models/File.entity';
 
 
   controllers: [
-    AppController, 
     FileUploadController,
     ProcessController,
     ScrapingController,
@@ -110,7 +94,6 @@ import { FileUpload } from './files/models/File.entity';
 
 
   providers: [
-    AppService,
     FileUploadService,
     FilterNumService,
     FilterFileService, 

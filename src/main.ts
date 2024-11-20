@@ -44,9 +44,6 @@ async function bootstrap() {
       // Lista de orígenes permitidos
       const allowedOrigins = [
         'https://aguas-cordobesas-front.vercel.app',
-        'https://bright-trout-amazingly.ngrok-free.app', 
-        'http://localhost:3001',
-        'http://localhost:3000',
       ];
 
       if (!origin || allowedOrigins.includes(origin)) {
@@ -80,5 +77,3 @@ async function bootstrap() {
 
 bootstrap();
 
-
-"ngrok http --url=bright-trout-amazingly.ngrok-free.app 3000 --host-header=rewrite"

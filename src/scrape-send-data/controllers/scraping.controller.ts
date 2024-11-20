@@ -1,12 +1,5 @@
 import { Controller, Post, Param, Get, Logger, Res, Query } from '@nestjs/common';
-import { Response } from 'express'; // Asegúrate de importar Response desde express
-import * as path from 'path';
 import { FileStorageService } from 'src/files/services/FileStorageService';
-import { WhatsAppService } from 'src/whatsapp-service/services/WhatsappService';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
-import { readExcelFile, writeExcelFile, emptyDownloadsFolder, writeExcelFileForDownload } from '../../files/utils/ExcelTools';
-import * as fs from 'fs';
 import { ScrapingService } from '../services/scraping.service';
 
 @Controller('scraping')

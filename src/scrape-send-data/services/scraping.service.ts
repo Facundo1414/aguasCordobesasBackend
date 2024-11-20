@@ -7,7 +7,6 @@ import * as fs from 'fs';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { Cluster } from 'puppeteer-cluster';
-import { log } from 'console';
 
 @Injectable()
 export class ScrapingService implements OnModuleDestroy {

@@ -2,7 +2,6 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
 import * as QRCode from 'qrcode';
 import * as fs from 'fs';
-import * as path from 'path';
 
 @Injectable()
 export class WhatsAppService{
