@@ -54,14 +54,13 @@ import { FileUpload } from './files/models/File.entity';
 
     TypeOrmModule.forRoot({ 
       type: 'postgres',
-      host: process.env.DB_HOST, 
-      port: Number(process.env.DB_PORT) || 5432, 
-      username: process.env.DB_USER, 
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME, 
-      entities: [FileUpload, User, RefreshToken], 
-      synchronize: false, 
-      ssl: { rejectUnauthorized: false }, // Render requiere SSL
+      host: 'localhost',
+      port: 5432,
+      username: 'postgres',
+      password: 'root',
+      database: 'aquaDB',
+      entities: [FileUpload, User, RefreshToken],
+      synchronize: true, // TODO Asegúrate de ponerlo en `false` en producción
     }),
     TypeOrmModule.forFeature([FileUpload, User, RefreshToken]), 
 
