@@ -54,15 +54,15 @@ import { FileUpload } from './files/models/File.entity';
 
     TypeOrmModule.forRoot({ 
       type: 'postgres',
-      host: process.env.DB_HOST, 
-      port: Number(process.env.DB_PORT) || 5432, 
-      username: process.env.DB_USER, 
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME, 
-      entities: [FileUpload, User, RefreshToken], 
-      synchronize: false,
-      ssl: false, 
+      url: process.env.DATABASE_URL,
+      synchronize: false, // Asegúrate de no usarlo en producción
+      ssl: false,
+      logging: false,
+      extra: {
+        max: 5, // Limita las conexiones máximas
+      },
     }),
+    
     TypeOrmModule.forFeature([FileUpload, User, RefreshToken]), 
 
     BullModule.forRoot({ 
@@ -71,6 +71,7 @@ import { FileUpload } from './files/models/File.entity';
         port: Number(process.env.REDIS_PORT) || 6379,
       },
     }),
+    
 
     HttpModule, 
 

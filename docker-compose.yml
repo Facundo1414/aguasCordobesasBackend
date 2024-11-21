@@ -40,7 +40,7 @@ services:
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
     ports:
-      - "3000:3000"
+      - "3000:3000"  # Exponiendo el puerto 3000
     depends_on:
       - postgres
       - redis

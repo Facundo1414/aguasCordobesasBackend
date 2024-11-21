@@ -77,3 +77,4 @@ async function bootstrap() {
 
 bootstrap();
 
+"ngrok http --url=bright-trout-amazingly.ngrok-free.app 3030"
