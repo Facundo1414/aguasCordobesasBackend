@@ -60,15 +60,15 @@ import { FileUpload } from './files/models/File.entity';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME, 
       entities: [FileUpload, User, RefreshToken], 
-      synchronize: false, 
-      ssl: { rejectUnauthorized: false }, // Render requiere SSL
+      synchronize: false,
+      ssl: false, 
     }),
     TypeOrmModule.forFeature([FileUpload, User, RefreshToken]), 
 
     BullModule.forRoot({ 
       redis: {
-        host: 'localhost',
-        port: 6379,
+        host: process.env.REDIS_HOST,
+        port: Number(process.env.REDIS_PORT) || 6379,
       },
     }),
 

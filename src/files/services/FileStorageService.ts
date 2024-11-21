@@ -15,7 +15,6 @@ export class FileStorageService implements OnModuleDestroy {
       database: process.env.DB_NAME, 
       password: process.env.DB_PASSWORD, 
       port: Number(process.env.DB_PORT) || 5432, 
-      ssl: { rejectUnauthorized: false }, // Render requiere SSL
     });
 
     this.client.connect().then(() => {

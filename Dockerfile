@@ -1,24 +1,29 @@
 FROM node:18-alpine as node
 
 WORKDIR /app
-# Installs latest Chromium (92) package.
+
+# Instala Chromium y Puppeteer
 RUN apk add --no-cache \
       chromium \
       nss \
       freetype \
       harfbuzz \
       ca-certificates \
-      ttf-freefont \
-      nodejs \
-      yarn
+      ttf-freefont
 
-# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
+# Configuración para Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
-# Puppeteer v10.0.0 works with Chromium 92.
-COPY . .
-RUN npm install puppeteer@10.0.0
-RUN npm install
+# Copia el código fuente y las dependencias
+COPY package*.json ./
+RUN npm ci
 
+# Copia el resto del código
+COPY . .
+
+# Expone el puerto de NestJS
+EXPOSE 3000
+
+# Inicia la aplicación
 CMD ["npm", "start"]

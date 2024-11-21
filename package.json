@@ -1,5 +1,5 @@
 {
-  "name": "uriel",
+  "name": "aquabackend",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -22,9 +22,9 @@
   "dependencies": {
     "@bot-whatsapp/bot": "latest",
     "@bot-whatsapp/cli": "latest",
-    "@bot-whatsapp/database": "latest",
+    "@bot-whatsapp/database": "^0.0.1",
     "@bot-whatsapp/portal": "latest",
-    "@bot-whatsapp/provider": "latest",
+    "@bot-whatsapp/provider": "^0.1.24",
     "@nestjs/axios": "^3.0.2",
     "@nestjs/bull": "^10.2.0",
     "@nestjs/common": "^10.0.0",
@@ -39,8 +39,8 @@
     "@nestjs/typeorm": "^10.0.2",
     "@nestjs/websockets": "^10.4.1",
     "@types/passport-jwt": "^4.0.1",
+    "aquabackend": "file:",
     "base-wweb-postgres": "file:",
-    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "bull": "^4.16.0",
     "class-transformer": "^0.5.1",
@@ -64,9 +64,10 @@
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.20",
     "uriel": "file:",
-    "venom-bot": "^5.1.0",
+    "venom-bot": "^5.0.5",
     "whatsapp-web.js": "^1.23.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
