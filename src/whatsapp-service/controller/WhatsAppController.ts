@@ -60,7 +60,10 @@ export class WhatsAppController {
     // Check if the WhatsApp session is already active
     const isSessionActive = await this.whatsappService.checkSessionStatus(userId);
     if (isSessionActive) {
-      return res.status(HttpStatus.OK).json({ message: 'ok' });
+      const isLoggedIn = await this.whatsappService.isWhatsAppUser("5493513479404", userId);
+      if (isLoggedIn) {
+        return res.status(HttpStatus.OK).json({ message: 'SessionActive' });
+      }
     }
   
     // If not active, initialize a new session
