@@ -7,6 +7,7 @@ import * as fs from 'fs';
 export class WhatsAppService{
   private clients: Map<string, Client> = new Map(); // Mapa para manejar múltiples clientes
   private isInitialized = new Map<string, boolean>(); // Estado de inicialización por usuario
+  private qrCodes = new Map<string, string>(); // Almacena los códigos QR por usuario
 
   constructor() {}
 
@@ -29,6 +30,7 @@ export class WhatsAppService{
       client.on('qr', async (qr) => {
         console.log(`QR generado para usuario ${userId}`);
         const qrCodeBase64 = await QRCode.toDataURL(qr);
+        this.qrCodes.set(userId, qrCodeBase64); // Guardar el QR generado
         // Solo enviamos el código QR si aún no está listo
         if (!this.isInitialized.get(userId)) {
           resolve({ client, qrCode: qrCodeBase64 });
@@ -38,6 +40,7 @@ export class WhatsAppService{
       client.on('ready', () => {
         console.log(`Cliente de WhatsApp para usuario ${userId} listo`);
         this.isInitialized.set(userId, true);
+        this.qrCodes.delete(userId); // Eliminar QR una vez inicializado
         resolve({ client }); // Resolución cuando está listo
       });
   
@@ -62,7 +65,9 @@ export class WhatsAppService{
     });
   }
   
-  
+  getQRCode(userId: string): string | null {
+    return this.qrCodes.get(userId) || null; // Retorna el QR almacenado
+  }
   
 
   async isWhatsAppUser(phoneNumber: string, userId: string): Promise<boolean> {

@@ -74,11 +74,28 @@ export class WhatsAppController {
         message: 'Sesión de WhatsApp inicializada',
         clientId: userId,
         qrCode,
-      });
-    } catch (error) {
-      console.error('Error al inicializar sesión de WhatsApp:', error);
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Fallo al inicializar la sesión de WhatsApp' });
+      });    } catch (error) {
+        console.error('Error al inicializar sesión de WhatsApp:', error);
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Fallo al inicializar la sesión de WhatsApp' });
+      }
+  }
+
+  @Get('get-qr')
+  async getQRCode(@Request() req, @Res() res: Response) {
+    const token = req.headers.authorization?.split(' ')[1];
+    const userId = await this.extractUserIdFromToken(token);
+
+    if (!userId) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid token' });
     }
+
+    const qrCode = this.whatsappService.getQRCode(userId);
+
+    if (!qrCode) {
+      return res.status(HttpStatus.NOT_FOUND).json({ message: 'No QR code available' });
+    }
+
+    return res.status(HttpStatus.OK).json({ qrCode });
   }
 
   @UseGuards(AuthGuard)
