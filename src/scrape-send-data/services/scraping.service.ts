@@ -28,7 +28,7 @@ export class ScrapingService implements OnModuleDestroy {
       retryLimit: 3, // Reintentar hasta 3 veces si un trabajo falla
       puppeteerOptions: {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless: true,
+        headless: true ,
       },
     });
 
@@ -45,8 +45,11 @@ export class ScrapingService implements OnModuleDestroy {
         if (!hasDebt) return;
 
         const downloadUrl = await this.selectCheckbox(page , expiration);
-        const pdfPath = await this.downloadPDF(page, searchValue, downloadsPath, downloadUrl);
+        if (!downloadUrl) {
+          throw new Error(`No se pudo obtener la URL de descarga para UF ${searchValue}.`);
+        }
 
+        const pdfPath = await this.downloadPDF(page, searchValue, downloadsPath, downloadUrl);
         return pdfPath;
 
       } catch (error) {
@@ -93,52 +96,86 @@ export class ScrapingService implements OnModuleDestroy {
     return true;
   }
 
-  // Selecciona el checkbox y descarga el PDF
-  private async selectCheckbox(page: puppeteer.Page, expiration: number) {
 
-    await page.click('#selVencimiento');
-    
-
-    await page.evaluate((expiration) => {
-      const selectElement = document.querySelector<HTMLSelectElement>('#selVencimiento');
-      if (selectElement && selectElement.options.length > 1) {
-        if (expiration === 0) {
-          selectElement.value = selectElement.options[0].value;
-        }
-        else{
-          selectElement.value = selectElement.options[1].value;
-        }
-        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+  // Método para manejar reintentos
+  private async retry<T>(
+    fn: () => Promise<T>,
+    retries: number = 3,
+    delayMs: number = 2000
+  ): Promise<T> {
+    let attempt = 1;
+  
+    while (attempt <= retries) {
+      try {
+        return await fn(); // Intentar ejecutar la función
+      } catch (error) {
+        console.error(`Error en intento ${attempt}/${retries}: ${error.message}`);
+        if (attempt === retries) throw error; // Si se agotan los reintentos, relanzar el error
+        await this.delay(delayMs); // Esperar antes del próximo intento
       }
-    },expiration);
-
-    await page.waitForFunction(() => {
-      const button = document.querySelector<HTMLButtonElement>('#btn-generarDocRweb');
-      return button && !button.disabled && getComputedStyle(button).visibility !== 'hidden';
-    }, { timeout: 35000 });
-
-    await page.click('#btn-generarDocRweb');
-
-    this.delay(2000)
-
-    // si no deja descargar
-    const resultModalVisible = await page.waitForSelector('#resultModalPagoEf', { visible: true, timeout: 5000 }).catch(() => false);
-    if (resultModalVisible) {
-      this.addDebts(page, expiration);
-    }
-    else{
-      const downloadUrl = await page.waitForResponse(response => {
-        return response.url().includes('downloadDocDeuda') && response.status() === 200;
-      }, { timeout: 30000 });
-      return downloadUrl;
+      attempt++;
     }
   }
+  
+  // Selecciona el checkbox y descarga el PDF
+  private async selectCheckbox(page: puppeteer.Page, expiration: number): Promise<puppeteer.HTTPResponse | null> {
+    return await this.retry(async () => {
+      try {
+        // Hacer clic en el select box
+        await page.click('#selVencimiento');
+  
+        // Cambiar el valor del select según el parámetro `expiration`
+        await page.evaluate((expiration) => {
+          const selectElement = document.querySelector<HTMLSelectElement>('#selVencimiento');
+          if (selectElement && selectElement.options.length > 1) {
+            if (expiration === 0) {
+              selectElement.value = selectElement.options[0].value;
+            } else {
+              selectElement.value = selectElement.options[1].value;
+            }
+            selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }, expiration);
+  
+        // Esperar a que el botón esté habilitado y sea visible
+        await page.waitForFunction(() => {
+          const button = document.querySelector<HTMLButtonElement>('#btn-generarDocRweb');
+          return button && !button.disabled && getComputedStyle(button).visibility !== 'hidden';
+        }, { timeout: 35000 });
+  
+        // Hacer clic en el botón para generar el documento
+        await page.click('#btn-generarDocRweb');
+        await this.delay(2000);
+  
+        // Verificar si se muestra el modal de resultado
+        const resultModalVisible = await page.waitForSelector('#resultModalPagoEf', { visible: true, timeout: 5000 }).catch(() => false);
+        if (resultModalVisible) {
+          console.log('Intentando añadir nuevas deudas...');
+          await this.addDebts(page, expiration);
+          throw new Error('Nuevo intento requerido debido a deuda no generada.');
+        }
+  
+        // Esperar a la respuesta de descarga
+        const downloadUrl = await page.waitForResponse(
+          (response) => response.url().includes('downloadDocDeuda') && response.status() === 200,
+          { timeout: 30000 }
+        );
+  
+        return downloadUrl;
+      } catch (error) {
+        console.error('Error al procesar el checkbox:', error.message);
+        throw error; // Lanzar el error para que `retry` maneje el reintento
+      }
+    });
+  }
+  
 
 
   // Metodo auxliar en caso de que no deje descargar deudas por falta de las mismas.
   private async addDebts(page: puppeteer.Page , expiration: number){
     const resultModalVisible = await page.waitForSelector('#resultModalPagoEf', { visible: true, timeout: 10000 }).catch(() => false);
-
+    console.log("resultModalPagoEf: " + resultModalVisible);
+    
     if (resultModalVisible) {
           console.log('El modal de resultado está visible, cerrándolo...');
 
@@ -231,6 +268,7 @@ export class ScrapingService implements OnModuleDestroy {
       throw new Error('No se encontró la URL de descarga');
     }
   }
+  
 
   // Método auxiliar para retrasos
   private delay(ms: number) {
