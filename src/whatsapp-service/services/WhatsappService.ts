@@ -105,6 +105,11 @@ export class WhatsAppService{
         return;
       }
 
+      if (!phoneNumber || !phoneNumber.startsWith("549351")) {
+        throw new Error('Invalid phone number format.');
+      }
+      
+
       const client = this.clients.get(userId);
       if (!client || !this.isInitialized.get(userId)) {
         console.error(`Client is not initialized for user ${userId}`);
@@ -151,7 +156,13 @@ export class WhatsAppService{
     return client ? client.info !== null : false;
   }
   
-
+  isInitializing(userId: string): boolean {
+    const sesion = this.isInitialized.get(userId);
+    if (sesion) {
+      return true
+    }
+    return false}
+  
 
   async logout(userId: string): Promise<void> {
     const client = this.clients.get(userId);
