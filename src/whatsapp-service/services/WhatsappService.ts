@@ -27,11 +27,13 @@ export class WhatsAppService{
     // Usamos RemoteAuth para manejar la sesión almacenada en la base de datos
     const client = new Client({
       authStrategy: new RemoteAuth({
-        clientId: userId, // Asegúrate de que el `clientId` sea único por usuario
-        store: this.sessionStore, // Usamos el store que apunta a la base de datos
+        clientId: userId, 
+        store: this.sessionStore, 
         backupSyncIntervalMs: 90000, // Sincronización en intervalos
       }),
-      puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] },
+      puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'],
+
+      },
     });
 
     this.clients.set(userId, client);
@@ -53,6 +55,12 @@ export class WhatsAppService{
         this.isInitialized.set(userId, true);
         this.qrCodes.delete(userId);
         resolve({ client });
+      });
+
+    client.on("authenticated", (session) => {
+      console.log("Client authenticated, saving session.");
+        //this.sessionStore.save({options: }).then(() => {
+        console.log("Session Saved");
       });
 
       client.on('auth_failure', (msg) => {
@@ -189,7 +197,7 @@ export class WhatsAppService{
       this.isInitialized.delete(userId); // Elimina el estado de inicialización
       this.qrCodes.delete(userId);
       // Eliminar la sesión de la base de datos
-      await this.sessionStore.delete({ session: userId });
+      //await this.sessionStore.delete({ session: userId });
 
       console.log(`User ${userId} has logged out and client destroyed`);
     } else {
