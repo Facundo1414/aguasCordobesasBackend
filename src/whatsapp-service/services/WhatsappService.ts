@@ -1,7 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
+import { Client, LocalAuth, MessageMedia, RemoteAuth } from 'whatsapp-web.js';
 import * as QRCode from 'qrcode';
 import * as fs from 'fs';
+import { WhatsAppPostgresStore } from './whatsappStore';
 
 @Injectable()
 export class WhatsAppService{
@@ -9,61 +10,73 @@ export class WhatsAppService{
   private isInitialized = new Map<string, boolean>(); // Estado de inicialización por usuario
   private qrCodes = new Map<string, string>(); // Almacena los códigos QR por usuario
 
-  constructor() {}
+  constructor(private readonly sessionStore: WhatsAppPostgresStore) {}
 
-
-
-  async initializeWhatsApp(userId: string): Promise<{ client: Client, qrCode?: string }> {
+  async initializeWhatsApp(userId: string): Promise<{ client: Client; qrCode?: string }> {
     if (this.isInitialized.get(userId)) {
-      return { client: this.clients.get(userId) };
+      const existingClient = this.clients.get(userId);
+      if (existingClient && existingClient.info) {
+        return { client: existingClient }; // La sesión ya está activa, no necesitamos el QR
+      }
     }
-  
+
+    // Verificar si la sesión existe en la base de datos
+    //const sessionData = await this.sessionStore.extract({ session: userId, path: '' });\]
+    
+
+    // Usamos RemoteAuth para manejar la sesión almacenada en la base de datos
     const client = new Client({
-      authStrategy: new LocalAuth({ clientId: userId }),
+      authStrategy: new RemoteAuth({
+        clientId: userId, // Asegúrate de que el `clientId` sea único por usuario
+        store: this.sessionStore, // Usamos el store que apunta a la base de datos
+        backupSyncIntervalMs: 90000, // Sincronización en intervalos
+      }),
       puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] },
     });
-  
+
     this.clients.set(userId, client);
     this.isInitialized.set(userId, false);
-  
+
     return new Promise((resolve, reject) => {
+      let qrResolved = false;
+
       client.on('qr', async (qr) => {
-        console.log(`QR generado para usuario ${userId}`);
         const qrCodeBase64 = await QRCode.toDataURL(qr);
-        this.qrCodes.set(userId, qrCodeBase64); // Guardar el QR generado
-        // Solo enviamos el código QR si aún no está listo
-        if (!this.isInitialized.get(userId)) {
+        this.qrCodes.set(userId, qrCodeBase64);
+        if (!qrResolved) {
+          qrResolved = true;
           resolve({ client, qrCode: qrCodeBase64 });
         }
       });
-  
-      client.on('ready', () => {
-        console.log(`Cliente de WhatsApp para usuario ${userId} listo`);
+
+      client.on('ready', async () => {
         this.isInitialized.set(userId, true);
-        this.qrCodes.delete(userId); // Eliminar QR una vez inicializado
-        resolve({ client }); // Resolución cuando está listo
+        this.qrCodes.delete(userId);
+        resolve({ client });
       });
-  
+
       client.on('auth_failure', (msg) => {
-        console.error(`Fallo de autenticación para usuario ${userId}`, msg);
-        reject(new Error(`Fallo de autenticación para usuario ${userId}`));
+        this.cleanUpUser(userId);
+        reject(new Error(`Auth failure for user ${userId}: ${msg}`));
       });
-  
+
       client.on('disconnected', async (reason) => {
-        console.log(`Cliente de WhatsApp para usuario ${userId} desconectado: ${reason}`);
-        this.isInitialized.set(userId, false);
-        await client.destroy();
-        await this.initializeWhatsApp(userId);
+        this.cleanUpUser(userId);
+        setTimeout(() => this.initializeWhatsApp(userId), 5000);
       });
-  
-      try {
-        client.initialize();
-      } catch (error) {
-        console.error(`Error al inicializar para usuario ${userId}:`, error);
-        reject(error);
-      }
+
+      client.initialize();
     });
+}
+
+  
+  // Método adicional para limpiar el estado del usuario
+  private cleanUpUser(userId: string): void {
+    this.clients.delete(userId);
+    this.isInitialized.delete(userId);
+    this.qrCodes.delete(userId);
   }
+  
   
   getQRCode(userId: string): string | null {
     return this.qrCodes.get(userId) || null; // Retorna el QR almacenado
@@ -91,6 +104,9 @@ export class WhatsAppService{
     try {
       const chatId = `${phoneNumber}@c.us`;
       const client = this.clients.get(userId); // Obtiene el cliente sin inicializarlo
+      if (!client || !this.isInitialized.get(userId)) {
+        throw new Error(`Client not initialized for user ${userId}`);
+      }
       await client.sendMessage(chatId, message);
       console.log(`Message sent to ${phoneNumber} by user ${userId}`);
     } catch (error) {
@@ -171,6 +187,10 @@ export class WhatsAppService{
       await client.destroy(); // Destruye el cliente
       this.clients.delete(userId); // Elimina el cliente del mapa
       this.isInitialized.delete(userId); // Elimina el estado de inicialización
+      this.qrCodes.delete(userId);
+      // Eliminar la sesión de la base de datos
+      await this.sessionStore.delete({ session: userId });
+
       console.log(`User ${userId} has logged out and client destroyed`);
     } else {
       console.warn(`No active client found for user ${userId}`);

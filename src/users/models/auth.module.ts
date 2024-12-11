@@ -9,6 +9,8 @@ import { TokenCleanupService } from '../services/token-cleanup.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RefreshToken } from '../jwt/refresh-token.entity';
 import { WhatsAppService } from 'src/whatsapp-service/services/WhatsappService';
+import { WhatsAppPostgresStore } from 'src/whatsapp-service/services/whatsappStore';
+import { WhatsAppSessionEntity } from 'src/whatsapp-service/models/whatsappSession.entity';
 
 @Module({
   imports: [
@@ -20,9 +22,9 @@ import { WhatsAppService } from 'src/whatsapp-service/services/WhatsappService';
     UsersModule,
     PassportModule,
     RefreshTokenModule,
-    TypeOrmModule.forFeature([RefreshToken])
+    TypeOrmModule.forFeature([RefreshToken, WhatsAppSessionEntity])
   ],
-  providers: [AuthService, TokenCleanupService, WhatsAppService],
+  providers: [AuthService, TokenCleanupService, WhatsAppService, WhatsAppPostgresStore ],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {

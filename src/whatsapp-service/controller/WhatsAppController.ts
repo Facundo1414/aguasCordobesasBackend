@@ -118,6 +118,28 @@ export class WhatsAppController {
   }
 
   @UseGuards(AuthGuard)
+@Get('is-initializing')
+async isInitializing(@Request() req: any, @Res() res: Response) {
+  const token = req.headers.authorization?.split(' ')[1];
+  const userId = await this.extractUserIdFromToken(token);
+
+  if (!userId) {
+    return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'User not authenticated' });
+  }
+
+  try {
+    const isInitializing = await this.whatsappService.isInitializing(userId);
+    console.log("isInitializing: " + isInitializing);
+    
+    return res.status(HttpStatus.OK).json({ isInitializing });
+  } catch (error) {
+    console.error('Error checking initialization status:', error);
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: 'Failed to check initialization status' });
+  }
+}
+
+
+  @UseGuards(AuthGuard)
   @Get('logout')
   async logout(@Request() req: any, @Res() res: Response) {
     const token = req.headers.authorization?.split(' ')[1];

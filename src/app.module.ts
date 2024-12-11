@@ -33,6 +33,9 @@ import { CleanupService } from './files/services/CleanupService';
 import { JwtModule } from '@nestjs/jwt';
 import { WhatsAppController } from './whatsapp-service/controller/WhatsAppController';
 import { FileUpload } from './files/models/File.entity';
+import { WhatsAppSessionEntity } from './whatsapp-service/models/whatsappSession.entity';
+import { WhatsAppPostgresStore } from './whatsapp-service/services/whatsappStore';
+import { WhatsAppModule } from './whatsapp-service/models/whatsapp.module';
 
 
 @Module({
@@ -56,13 +59,13 @@ import { FileUpload } from './files/models/File.entity';
       type: 'postgres',
       host: 'localhost',
       port: 5432,
-      username: 'postgres',
-      password: 'root',
-      database: 'aquaDB',
-      entities: [FileUpload, User, RefreshToken],
+      username: "postgres",
+      password: "root",
+      database: "aquaDB",
+      entities: [FileUpload, User, RefreshToken, WhatsAppSessionEntity],
       synchronize: true, // TODO Asegúrate de ponerlo en `false` en producción
     }),
-    TypeOrmModule.forFeature([FileUpload, User, RefreshToken]), 
+    TypeOrmModule.forFeature([FileUpload, User, RefreshToken, WhatsAppSessionEntity]), 
 
     BullModule.forRoot({ 
       redis: {
@@ -79,7 +82,7 @@ import { FileUpload } from './files/models/File.entity';
 
     UsersModule, 
 
-
+    WhatsAppModule
   ], 
 
 

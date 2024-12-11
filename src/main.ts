@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import { HttpStatus, ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import * as session from 'express-session';
 import { TimeoutInterceptor } from './timeOutInterceptor';
 
+// Cargar variables de entorno
 dotenv.config();
 
 async function bootstrap() {
@@ -26,13 +27,21 @@ async function bootstrap() {
     }),
   );
 
+  // Middlewares globales
+  app.use((req, res, next) => {
+    console.log(`[${req.method}] ${req.url}`);
+    next();
+  });
+
+
+
   app.use((req, res, next) => {
     if (req.method === 'OPTIONS') {
       res.header('Access-Control-Allow-Origin', req.headers.origin); // El origen específico
       res.header('Access-Control-Allow-Credentials', 'true'); // Permitir credenciales
       res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-      return res.status(200).json({});
+      return res.status(204).json({});
     }
     next();
   });
